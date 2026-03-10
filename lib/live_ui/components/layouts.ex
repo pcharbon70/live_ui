@@ -3,28 +3,159 @@ defmodule LiveUi.Components.Layouts do
 
   use Phoenix.Component
 
-  alias LiveUi.Style.Compiler
+  alias LiveUi.Components.Helpers
 
   attr(:descriptor, :map, required: true)
 
   def render(assigns) do
     descriptor = assigns.descriptor
-    props = Map.get(descriptor, :props, Map.get(descriptor, "props", %{}))
-    children = Map.get(descriptor, :children, Map.get(descriptor, "children", []))
+    props = Helpers.props(descriptor)
+    children = Helpers.children(descriptor)
+    kind = Helpers.kind(descriptor)
 
     assigns =
       assigns
-      |> assign(:id, Map.get(descriptor, :id, Map.get(descriptor, "id")))
-      |> assign(:kind, Map.get(descriptor, :kind, Map.get(descriptor, "kind")))
-      |> assign(:children, children)
-      |> assign(:classes, Compiler.compile(Map.get(props, "style", %{})))
+      |> assign(:id, Helpers.id(descriptor))
+      |> assign(:kind, kind)
+      |> assign(:props, props)
+      |> assign(:children, visible_children(children))
+      |> assign(
+        :classes,
+        Helpers.classes(descriptor, ["live-ui-layout", "live-ui-layout--#{kind}"])
+      )
+      |> assign(:style, layout_style(kind, props, Helpers.inline_style(descriptor)))
+      |> assign(:hook, Helpers.hook_name(descriptor))
 
     ~H"""
-    <div id={@id} class={["live-ui-layout", "live-ui-layout--#{@kind}" | @classes]}>
-      <%= for child <- @children do %>
-        <LiveUi.WidgetRegistry.render descriptor={child} />
-      <% end %>
-    </div>
+    <%= if Helpers.visible?(@descriptor) do %>
+      <section
+        id={@id}
+        class={@classes}
+        style={@style}
+        data-live-ui-kind={@kind}
+        data-live-ui-hook={@hook}
+        data-live-ui-widget-id={@id}
+      >
+        <%= case @kind do %>
+          <% "stack" -> %>
+            <%= for {child, index} <- Enum.with_index(@children) do %>
+              <div hidden={index != active_index(@props)} class="live-ui-stack__panel">
+                <LiveUi.WidgetRegistry.render descriptor={child} />
+              </div>
+            <% end %>
+          <% "zbox" -> %>
+            <%= for {child, index} <- Enum.with_index(@children) do %>
+              <div class="live-ui-zbox__layer" style={zbox_style(@props, child, index)}>
+                <LiveUi.WidgetRegistry.render descriptor={child} />
+              </div>
+            <% end %>
+          <% _ -> %>
+            <%= for child <- @children do %>
+              <LiveUi.WidgetRegistry.render descriptor={child} />
+            <% end %>
+        <% end %>
+      </section>
+    <% end %>
     """
   end
+
+  defp visible_children(children) do
+    Enum.filter(children, &Helpers.visible?/1)
+  end
+
+  defp layout_style(kind, props, base_style) do
+    css =
+      []
+      |> add_css("display", display_for(kind))
+      |> add_css("flex-direction", direction_for(kind))
+      |> add_css("gap", px(Map.get(props, "spacing", Map.get(props, "gap"))))
+      |> add_css("padding", px(Map.get(props, "padding")))
+      |> add_css("align-items", css_value(Map.get(props, "align_items")))
+      |> add_css("justify-content", css_value(Map.get(props, "justify_content")))
+      |> add_css("grid-template-columns", track_list(Map.get(props, "columns")))
+      |> add_css("grid-template-rows", track_list(Map.get(props, "rows")))
+      |> add_css("overflow", if(kind == "viewport", do: "auto", else: nil))
+      |> add_css("position", if(kind == "zbox", do: "relative", else: nil))
+      |> add_css("--live-ui-split", split_value(props))
+      |> Enum.reverse()
+      |> Enum.join("; ")
+
+    join_css(base_style, css)
+  end
+
+  defp display_for(kind) when kind in ["vbox", "hbox", "split_pane"], do: "flex"
+  defp display_for("grid"), do: "grid"
+  defp display_for(_kind), do: "block"
+
+  defp direction_for("vbox"), do: "column"
+  defp direction_for("hbox"), do: "row"
+  defp direction_for("split_pane"), do: nil
+  defp direction_for(_kind), do: nil
+
+  defp split_value(props) do
+    case Map.get(props, "initial_split") do
+      value when is_integer(value) -> "#{value}%"
+      value when is_binary(value) -> value
+      _ -> nil
+    end
+  end
+
+  defp active_index(props) do
+    case Map.get(props, "active_index", 0) do
+      value when is_integer(value) and value >= 0 ->
+        value
+
+      value when is_binary(value) ->
+        case Integer.parse(value) do
+          {index, ""} -> index
+          _ -> 0
+        end
+
+      _ ->
+        0
+    end
+  end
+
+  defp zbox_style(props, child, index) do
+    positions = Map.get(props, "positions", %{})
+    id = Helpers.id(child)
+    child_position = Map.get(positions, id, Map.get(positions, Integer.to_string(index), %{}))
+
+    []
+    |> add_css("position", "absolute")
+    |> add_css("left", px(Map.get(child_position, "x")))
+    |> add_css("top", px(Map.get(child_position, "y")))
+    |> add_css("width", px(Map.get(child_position, "width")))
+    |> add_css("height", px(Map.get(child_position, "height")))
+    |> add_css(
+      "z-index",
+      css_value(Map.get(child_position, "z", Map.get(child_position, "z_index")))
+    )
+    |> Enum.reverse()
+    |> Enum.join("; ")
+  end
+
+  defp track_list(list) when is_list(list), do: Enum.map_join(list, " ", &css_value/1)
+  defp track_list(_list), do: nil
+
+  defp px(value) when is_integer(value), do: "#{value}px"
+  defp px(value) when is_binary(value), do: value
+  defp px(_value), do: nil
+
+  defp css_value(nil), do: nil
+  defp css_value(value) when is_boolean(value), do: if(value, do: "true", else: "false")
+  defp css_value(value) when is_atom(value), do: Atom.to_string(value)
+  defp css_value(value) when is_binary(value), do: value
+  defp css_value(value) when is_integer(value), do: Integer.to_string(value)
+  defp css_value(_value), do: nil
+
+  defp add_css(acc, _property, nil), do: acc
+  defp add_css(acc, property, value), do: ["#{property}: #{value}" | acc]
+
+  defp join_css(nil, css), do: blank_to_nil(css)
+  defp join_css(base, ""), do: blank_to_nil(base)
+  defp join_css(base, css), do: Enum.join(Enum.reject([base, css], &(&1 in [nil, ""])), "; ")
+
+  defp blank_to_nil(""), do: nil
+  defp blank_to_nil(value), do: value
 end

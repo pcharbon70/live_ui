@@ -102,14 +102,8 @@ defmodule LiveUi.Live.Engine do
             <p>Status: <%= Atom.to_string(@live_ui_model.status) %></p>
           </header>
 
-          <div class="live-ui-shell__panel">
-            <h2>Screen State</h2>
-            <pre><%= inspect(@live_ui_model.screen_state, pretty: true, limit: :infinity) %></pre>
-          </div>
-
-          <div class="live-ui-shell__panel">
-            <h2>IUR Tree</h2>
-            <pre><%= inspect(@live_ui_model.iur_tree, pretty: true, limit: :infinity) %></pre>
+          <div class="live-ui-shell__body">
+            <LiveUi.WidgetRegistry.render descriptor={@live_ui_model.descriptor_tree} />
           </div>
         </div>
       <% end %>

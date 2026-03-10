@@ -1,6 +1,7 @@
 defmodule LiveUi.IUR.InterpreterTest do
   use ExUnit.Case, async: true
 
+  alias UnifiedIUR.{Layouts, Widgets}
   alias LiveUi.IUR.Interpreter
 
   defmodule ExampleExtension do
@@ -56,6 +57,33 @@ defmodule LiveUi.IUR.InterpreterTest do
     assert descriptor.kind == "button"
     assert descriptor.props["label"] == "Extension"
     assert length(descriptor.signal_bindings) == 1
+  end
+
+  test "accepts canonical UnifiedIUR structs through the protocol traversal path" do
+    payload =
+      %Layouts.VBox{
+        id: :root,
+        spacing: 2,
+        children: [
+          %Widgets.Text{id: :copy, content: "Hello"},
+          %Widgets.Button{id: :button_1, label: "Increment", on_click: :activate}
+        ]
+      }
+
+    assert {:ok, descriptor} = Interpreter.interpret(payload)
+    assert descriptor.id == "root"
+    assert descriptor.kind == "vbox"
+    assert descriptor.props["spacing"] == 2
+    assert Enum.map(descriptor.children, & &1.kind) == ["text", "button"]
+
+    assert Enum.at(descriptor.children, 1).signal_bindings == [
+             %{
+               event: "on_click",
+               widget_id: "button_1",
+               widget_kind: "button",
+               payload: %{"intent" => "activate"}
+             }
+           ]
   end
 
   test "rejects unsupported node kinds explicitly" do

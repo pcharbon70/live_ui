@@ -4,30 +4,39 @@ defmodule LiveUi.Runtime do
   """
 
   alias LiveUi.ConfigurationError
+  alias LiveUi.IUR.Interpreter
   alias LiveUi.Live.EventRouter
   alias LiveUi.Runtime.Model
   alias LiveUi.Source
+  alias LiveUi.WidgetState
 
   @type init_opt ::
           {:runtime_context, map()}
           | {:source, module()}
           | {:source_opts, keyword()}
+          | {:widget_state, map()}
 
   @spec init([init_opt()]) :: {:ok, Model.t()} | {:error, Exception.t()}
   def init(opts) when is_list(opts) do
     source = Source.new(Keyword.fetch!(opts, :source), Keyword.get(opts, :source_opts, []))
     runtime_context = Keyword.get(opts, :runtime_context, %{})
+    widget_state = Keyword.get(opts, :widget_state, %{})
     screen_state = init_screen_state(source)
-    iur_tree = render_iur_tree(source, screen_state)
 
-    {:ok,
-     Model.new(
-       runtime_context: runtime_context,
-       source: source,
-       screen_state: screen_state,
-       iur_tree: iur_tree,
-       status: :ready
-     )}
+    with {:ok, build} <- build_view_state(source, screen_state, widget_state) do
+      {:ok,
+       Model.new(
+         runtime_context: runtime_context,
+         source: source,
+         screen_state: screen_state,
+         widget_state: widget_state,
+         iur_tree: build.iur_tree,
+         descriptor_tree: build.descriptor_tree,
+         signal_bindings: build.signal_bindings,
+         render_metadata: build.render_metadata,
+         status: :ready
+       )}
+    end
   rescue
     error in [ConfigurationError, KeyError] -> {:error, error}
   end
@@ -35,26 +44,54 @@ defmodule LiveUi.Runtime do
   @spec handle_event(Model.t(), String.t() | atom(), map()) ::
           {:ok, Model.t()} | {:error, Exception.t()}
   def handle_event(%Model{} = model, event_name, payload) when is_map(payload) do
-    with {:ok, signal} <- EventRouter.normalize(event_name, payload, model.runtime_context) do
-      screen_state = update_screen_state(model.source, model.screen_state || %{}, signal)
-      iur_tree = render_iur_tree(model.source, screen_state)
+    incoming_widget_state = WidgetState.extract(payload)
+    widget_state = WidgetState.merge(model.widget_state || %{}, incoming_widget_state)
 
+    with {:ok, signal} <- EventRouter.normalize(event_name, payload, model.runtime_context),
+         screen_state <- update_screen_state(model.source, model.screen_state || %{}, signal),
+         {:ok, build} <- build_view_state(model.source, screen_state, widget_state) do
       {:ok,
        %Model{
          model
-         | event_count: model.event_count + 1,
+         | descriptor_tree: build.descriptor_tree,
+           event_count: model.event_count + 1,
            error: nil,
-           iur_tree: iur_tree,
+           iur_tree: build.iur_tree,
            last_event: %{name: event_name, payload: payload},
            last_signal: signal,
+           render_metadata: build.render_metadata,
            screen_state: screen_state,
-           status: :ready
+           signal_bindings: build.signal_bindings,
+           status: :ready,
+           widget_state: widget_state
        }}
     end
   end
 
   def handle_event(%Model{}, _event_name, _payload) do
     {:error, ConfigurationError.new("live_ui runtime events must provide a map payload")}
+  end
+
+  defp build_view_state(%Source{} = source, screen_state, widget_state) do
+    iur_tree = render_iur_tree(source, screen_state)
+
+    with {:ok, descriptor_tree} <- Interpreter.interpret(iur_tree) do
+      descriptor_tree = WidgetState.apply_overlay(descriptor_tree, widget_state)
+
+      {:ok,
+       %{
+         iur_tree: iur_tree,
+         descriptor_tree: descriptor_tree,
+         signal_bindings: Interpreter.collect_signal_bindings(descriptor_tree),
+         render_metadata: %{
+           root_id: descriptor_tree.id,
+           root_kind: descriptor_tree.kind,
+           node_count: count_nodes(descriptor_tree)
+         }
+       }}
+    end
+  rescue
+    error in [ConfigurationError] -> {:error, error}
   end
 
   defp init_screen_state(%Source{module: source_module, opts: source_opts}) do
@@ -71,6 +108,10 @@ defmodule LiveUi.Runtime do
 
   defp render_iur_tree(%Source{module: source_module}, screen_state) do
     apply(source_module, :view, [screen_state])
+  end
+
+  defp count_nodes(descriptor) do
+    1 + Enum.reduce(descriptor.children, 0, fn child, count -> count + count_nodes(child) end)
   end
 
   defp normalize_state_result(result, _callback_name) when is_map(result), do: result
