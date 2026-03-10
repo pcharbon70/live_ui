@@ -2,6 +2,7 @@ defmodule LiveUi.Components.Helpers do
   @moduledoc false
 
   alias LiveUi.Assets
+  alias LiveUi.IUR.ValueNormalizer
   alias LiveUi.Style.Compiler
 
   @spec id(map()) :: String.t() | nil
@@ -81,6 +82,83 @@ defmodule LiveUi.Components.Helpers do
   def scalar_string(value) when is_binary(value), do: value
   def scalar_string(value) when is_atom(value), do: Atom.to_string(value)
   def scalar_string(value), do: to_string(value)
+
+  @spec event_attrs(String.t(), String.t() | nil, map(), map() | nil, map()) :: keyword()
+  def event_attrs(dom_event, live_event \\ nil, descriptor, binding, extra_payload \\ %{})
+
+  def event_attrs(_dom_event, _live_event, _descriptor, nil, _extra_payload), do: []
+
+  def event_attrs(dom_event, live_event, descriptor, binding, extra_payload) do
+    live_event = normalize_event_name(live_event || dom_event)
+    dom_event = normalize_event_name(dom_event)
+    payload = binding_payload(binding) |> Map.merge(normalize_payload_map(extra_payload))
+
+    [
+      {"phx-#{dom_event}", live_event},
+      {"phx-value-widget_id", id(descriptor)},
+      {"phx-value-widget_kind", kind(descriptor)},
+      {"phx-value-event_#{live_event}_intent", intent(binding, live_event)}
+    ] ++ payload_attrs(live_event, payload)
+  end
+
+  @spec merge_attrs([keyword()]) :: keyword()
+  def merge_attrs(attr_lists) when is_list(attr_lists) do
+    attr_lists
+    |> Enum.reduce(%{}, fn attrs, acc -> Enum.into(attrs, acc) end)
+    |> Enum.reject(fn {_key, value} -> is_nil(value) end)
+  end
+
+  defp binding_payload(binding) do
+    binding
+    |> Map.get(:payload, Map.get(binding, "payload", %{}))
+    |> normalize_payload_map()
+    |> expand_nested_payload()
+  end
+
+  defp expand_nested_payload(payload) do
+    nested_payload =
+      case Map.get(payload, "payload") do
+        %{} = nested -> nested
+        _ -> %{}
+      end
+
+    payload
+    |> Map.drop(["intent", "payload"])
+    |> Map.merge(nested_payload)
+  end
+
+  defp normalize_payload_map(%{} = payload), do: ValueNormalizer.normalize_map(payload)
+  defp normalize_payload_map(other), do: %{"value" => ValueNormalizer.normalize_value(other)}
+
+  defp payload_attrs(event_name, payload) do
+    Enum.flat_map(payload, fn {key, value} ->
+      key = scalar_string(key)
+
+      cond do
+        is_nil(value) ->
+          []
+
+        scalar?(value) ->
+          [{"phx-value-event_#{event_name}_#{key}", scalar_attr(value)}]
+
+        true ->
+          [
+            {"phx-value-event_#{event_name}_json_#{key}",
+             Jason.encode!(ValueNormalizer.normalize_value(value))}
+          ]
+      end
+    end)
+  end
+
+  defp scalar?(value) when is_binary(value) or is_integer(value) or is_float(value), do: true
+  defp scalar?(value) when is_boolean(value) or is_atom(value), do: true
+  defp scalar?(_value), do: false
+
+  defp scalar_attr(value) when is_boolean(value), do: if(value, do: "true", else: "false")
+  defp scalar_attr(value), do: scalar_string(value)
+
+  defp normalize_event_name(value) when is_binary(value), do: value
+  defp normalize_event_name(value) when is_atom(value), do: Atom.to_string(value)
 
   defp normalize_string(value) when is_binary(value) do
     case String.trim(value) do

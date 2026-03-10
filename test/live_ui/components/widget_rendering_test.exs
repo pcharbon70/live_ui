@@ -22,6 +22,66 @@ defmodule LiveUi.Components.WidgetRenderingTest do
     assert rendered =~ "tone-accent"
   end
 
+  test "renders descriptor-defined click payload attrs for buttons" do
+    rendered =
+      render_component(&WidgetRegistry.render/1,
+        descriptor: %{
+          id: "increment-button",
+          kind: "button",
+          props: %{"label" => "Increment"},
+          signal_bindings: [
+            %{
+              event: "on_click",
+              widget_id: "increment-button",
+              widget_kind: "button",
+              payload: %{
+                "intent" => "activate",
+                "payload" => %{"delta" => 2, "source" => "counter"}
+              }
+            }
+          ]
+        }
+      )
+      |> rendered_to_string()
+
+    assert rendered =~ "phx-click=&quot;click&quot;"
+    assert rendered =~ "phx-value-event_click_intent=&quot;activate&quot;"
+    assert rendered =~ "phx-value-event_click_delta=&quot;2&quot;"
+    assert rendered =~ "phx-value-event_click_source=&quot;counter&quot;"
+  end
+
+  test "renders scoped attrs for multi-event text inputs" do
+    rendered =
+      render_component(&WidgetRegistry.render/1,
+        descriptor: %{
+          id: "name-input",
+          kind: "text_input",
+          props: %{"value" => "Pascal"},
+          signal_bindings: [
+            %{
+              event: "on_change",
+              widget_id: "name-input",
+              widget_kind: "text_input",
+              payload: %{"intent" => "update_name"}
+            },
+            %{
+              event: "on_submit",
+              widget_id: "name-input",
+              widget_kind: "text_input",
+              payload: %{"intent" => "commit_name", "payload" => %{"source" => "blur"}}
+            }
+          ]
+        }
+      )
+      |> rendered_to_string()
+
+    assert rendered =~ "phx-change=&quot;change&quot;"
+    assert rendered =~ "phx-blur=&quot;submit&quot;"
+    assert rendered =~ "phx-value-event_change_intent=&quot;update_name&quot;"
+    assert rendered =~ "phx-value-event_submit_intent=&quot;commit_name&quot;"
+    assert rendered =~ "phx-value-event_submit_source=&quot;blur&quot;"
+  end
+
   test "renders stateful composites with hook metadata" do
     rendered =
       render_component(&WidgetRegistry.render/1,
@@ -37,6 +97,39 @@ defmodule LiveUi.Components.WidgetRenderingTest do
     assert rendered =~ "LiveUi.SplitPane"
     assert rendered =~ "gap-2"
     refute rendered =~ "align-items: nil"
+  end
+
+  test "renders table interactions with stable scoped payload attrs" do
+    rendered =
+      render_component(&WidgetRegistry.render/1,
+        descriptor: %{
+          id: "users-table",
+          kind: "table",
+          props: %{
+            "columns" => [%{"key" => "name", "header" => "Name"}],
+            "data" => [%{"name" => "Pascal"}]
+          },
+          signal_bindings: [
+            %{
+              event: "on_row_select",
+              widget_id: "users-table",
+              widget_kind: "table",
+              payload: %{"intent" => "select_row"}
+            },
+            %{
+              event: "on_sort",
+              widget_id: "users-table",
+              widget_kind: "table",
+              payload: %{"intent" => "sort_rows", "payload" => %{"direction" => "asc"}}
+            }
+          ]
+        }
+      )
+      |> rendered_to_string()
+
+    assert rendered =~ "phx-value-event_click_sort_column=&quot;name&quot;"
+    assert rendered =~ "phx-value-event_click_direction=&quot;asc&quot;"
+    assert rendered =~ "phx-value-event_click_row_index=&quot;0&quot;"
   end
 
   test "renders layouts by recursively dispatching child descriptors" do

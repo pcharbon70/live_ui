@@ -13,6 +13,13 @@ defmodule LiveUi.Components.BasicWidgets do
     click_binding = Helpers.binding(descriptor, ["on_click", "action"])
     change_binding = Helpers.binding(descriptor, "on_change")
     submit_binding = Helpers.binding(descriptor, "on_submit")
+    button_attrs = Helpers.event_attrs("click", descriptor, click_binding)
+
+    input_event_attrs =
+      Helpers.merge_attrs([
+        Helpers.event_attrs("change", descriptor, change_binding),
+        Helpers.event_attrs("blur", "submit", descriptor, submit_binding)
+      ])
 
     assigns =
       assigns
@@ -22,9 +29,8 @@ defmodule LiveUi.Components.BasicWidgets do
       |> assign(:visible, Helpers.visible?(descriptor))
       |> assign(:classes, Helpers.classes(descriptor))
       |> assign(:style, Helpers.inline_style(descriptor))
-      |> assign(:click_intent, Helpers.intent(click_binding, "activate"))
-      |> assign(:change_intent, Helpers.intent(change_binding, "change"))
-      |> assign(:submit_intent, Helpers.intent(submit_binding, "submit"))
+      |> assign(:button_attrs, button_attrs)
+      |> assign(:input_event_attrs, input_event_attrs)
 
     ~H"""
     <%= if @visible do %>
@@ -44,10 +50,7 @@ defmodule LiveUi.Components.BasicWidgets do
             class={["live-ui-button" | @classes]}
             style={@style}
             disabled={truthy?(value(@props, "disabled", false))}
-            phx-click={if @click_intent, do: "click"}
-            phx-value-widget_id={@id}
-            phx-value-widget_kind={@kind}
-            phx-value-intent={@click_intent}
+            {@button_attrs}
           >
             <%= value(@props, "label", value(@props, "text", "Button")) %>
           </button>
@@ -61,11 +64,7 @@ defmodule LiveUi.Components.BasicWidgets do
             value={value(@props, "value", "")}
             placeholder={value(@props, "placeholder")}
             disabled={truthy?(value(@props, "disabled", false))}
-            phx-change={if @change_intent, do: "change"}
-            phx-blur={if @submit_intent, do: "submit"}
-            phx-value-widget_id={@id}
-            phx-value-widget_kind={@kind}
-            phx-value-intent={@change_intent}
+            {@input_event_attrs}
           />
         <% _ -> %>
           <div id={@id} class={["live-ui-unknown" | @classes]} style={@style}><%= inspect(@props) %></div>
