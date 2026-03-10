@@ -106,13 +106,13 @@ defmodule LiveUi.RuntimeTest do
     assert model.source.iur == RawIur.counter_tree(8)
     assert model.screen_state == %{}
     assert model.iur_tree == RawIur.counter_tree(8)
-    assert model.descriptor_tree.id == "raw-counter-root"
+    assert model.descriptor_tree.id == "counter-root"
     assert model.descriptor_tree.kind == "vbox"
     assert Enum.map(model.descriptor_tree.children, & &1.kind) == ["text", "button"]
 
     assert model.render_metadata == %{
              node_count: 3,
-             root_id: "raw-counter-root",
+             root_id: "counter-root",
              root_kind: "vbox"
            }
   end
@@ -127,14 +127,14 @@ defmodule LiveUi.RuntimeTest do
     assert {:ok, %Model{} = updated_model} =
              Runtime.handle_event(model, "click", %{
                "intent" => "activate",
-               "widget_id" => "raw-counter-button",
+               "widget_id" => "increment-button",
                "widget_kind" => "button"
              })
 
     assert updated_model.event_count == 1
     assert updated_model.screen_state == %{}
     assert updated_model.iur_tree == RawIur.counter_tree(2)
-    assert updated_model.descriptor_tree.id == "raw-counter-root"
+    assert updated_model.descriptor_tree.id == "counter-root"
     assert updated_model.last_signal.type == "live_ui.button.activate"
     assert hd(updated_model.descriptor_tree.children).props["content"] == "Count: 2"
   end
