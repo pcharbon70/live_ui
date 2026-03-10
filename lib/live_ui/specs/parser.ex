@@ -8,7 +8,7 @@ defmodule LiveUi.Specs.Parser do
   @block_pattern ~r/```([a-z-]+)\n([\s\S]*?)```/
 
   @spec read_documents(String.t()) :: [Document.t()]
-  def read_documents(glob \\ ".specs/*.spec.md") when is_binary(glob) do
+  def read_documents(glob \\ ".spec/specs/**/*.spec.md") when is_binary(glob) do
     glob
     |> Path.wildcard()
     |> Enum.sort()

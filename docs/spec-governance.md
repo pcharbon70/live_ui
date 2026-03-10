@@ -4,7 +4,7 @@
 
 ## Authoring Rules
 
-- every `.specs/*.spec.md` file uses JSON fenced blocks
+- every `.spec/specs/*.spec.md` file uses JSON fenced blocks
 - every non-policy subject declares a `spec-governance` block
 - every non-policy subject is governed by:
   - `policy.live_ui_governance`
@@ -21,14 +21,14 @@
 - the local checker writes `_build/specled/compliance-report.json`
 - governance failures produce `fail`
 - missing verification targets produce `warn`
-- `mix spec.check --strict` also fails on warnings
+- `mix live_ui.spec.check --strict` also fails on warnings
 
 ## Local Command
 
 Run:
 
 ```sh
-mix spec.check
+mix live_ui.spec.check
 ```
 
 The command:

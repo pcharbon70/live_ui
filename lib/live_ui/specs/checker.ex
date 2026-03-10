@@ -29,7 +29,7 @@ defmodule LiveUi.Specs.Checker do
 
   @spec check_repo(keyword()) :: ComplianceReport.t()
   def check_repo(opts \\ []) do
-    documents = Parser.read_documents(Keyword.get(opts, :glob, ".specs/*.spec.md"))
+    documents = Parser.read_documents(Keyword.get(opts, :glob, ".spec/specs/**/*.spec.md"))
     check_documents(documents, opts)
   end
 
