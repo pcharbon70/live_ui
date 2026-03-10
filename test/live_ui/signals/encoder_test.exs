@@ -66,4 +66,44 @@ defmodule LiveUi.Signals.EncoderTest do
     assert signal.type == "live_ui.split_pane.resize"
     assert signal.data.payload == %{"active_pane" => "left", "sizes" => [30, 70]}
   end
+
+  test "normalizes table and tree payloads without leaking browser structure" do
+    assert {:ok, table_signal} =
+             Encoder.encode("click", %{
+               "widget_id" => "users-table",
+               "widget_kind" => "table",
+               "event_click_intent" => "select_row",
+               "event_click_row_id" => "user-1",
+               "event_click_row_index" => "0"
+             })
+
+    assert table_signal.type == "live_ui.table.select_row"
+    assert table_signal.data.payload == %{"row_id" => "user-1", "row_index" => "0"}
+
+    assert {:ok, tree_signal} =
+             Encoder.encode("click", %{
+               "widget_id" => "tree-node-1",
+               "widget_kind" => "tree_node",
+               "event_click_intent" => "toggle_node",
+               "event_click_node_id" => "tree-node-1",
+               "event_click_expanded" => "true"
+             })
+
+    assert tree_signal.type == "live_ui.tree_node.toggle_node"
+    assert tree_signal.data.payload == %{"expanded" => "true", "node_id" => "tree-node-1"}
+  end
+
+  test "decodes hook-style viewport payload json into stable signal data" do
+    assert {:ok, signal} =
+             Encoder.encode("scroll", %{
+               "widget_id" => "viewport-1",
+               "widget_kind" => "viewport",
+               "event_scroll_intent" => "sync_scroll",
+               "event_scroll_axis" => "both",
+               "event_scroll_json_position" => Jason.encode!(%{"left" => 4, "top" => 12})
+             })
+
+    assert signal.type == "live_ui.viewport.sync_scroll"
+    assert signal.data.payload == %{"axis" => "both", "position" => %{"left" => 4, "top" => 12}}
+  end
 end

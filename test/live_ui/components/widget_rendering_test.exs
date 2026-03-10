@@ -129,7 +129,213 @@ defmodule LiveUi.Components.WidgetRenderingTest do
 
     assert rendered =~ "phx-value-event_click_sort_column=&quot;name&quot;"
     assert rendered =~ "phx-value-event_click_direction=&quot;asc&quot;"
+    assert rendered =~ "phx-value-event_click_row_id=&quot;0&quot;"
     assert rendered =~ "phx-value-event_click_row_index=&quot;0&quot;"
+  end
+
+  test "renders form builders with change and submit bindings" do
+    rendered =
+      render_component(&WidgetRegistry.render/1,
+        descriptor: %{
+          id: "profile-form",
+          kind: "form_builder",
+          props: %{"submit_label" => "Save"},
+          children: [
+            %{
+              id: "display-name",
+              kind: "form_field",
+              props: %{"label" => "Name", "name" => "name", "default" => "Pascal"}
+            }
+          ],
+          signal_bindings: [
+            %{
+              event: "on_change",
+              widget_id: "profile-form",
+              widget_kind: "form_builder",
+              payload: %{"intent" => "update_profile"}
+            },
+            %{
+              event: "on_submit",
+              widget_id: "profile-form",
+              widget_kind: "form_builder",
+              payload: %{"intent" => "save_profile"}
+            }
+          ]
+        }
+      )
+      |> rendered_to_string()
+
+    assert rendered =~ "phx-change=&quot;change&quot;"
+    assert rendered =~ "phx-submit=&quot;submit&quot;"
+    assert rendered =~ "phx-value-event_change_intent=&quot;update_profile&quot;"
+    assert rendered =~ "phx-value-event_submit_intent=&quot;save_profile&quot;"
+  end
+
+  test "renders tree, viewport, split pane, and command palette interaction metadata" do
+    rendered =
+      render_component(&WidgetRegistry.render/1,
+        descriptor: %{
+          id: "workspace-root",
+          kind: "vbox",
+          props: %{},
+          children: [
+            %{
+              id: "tree-node-1",
+              kind: "tree_node",
+              props: %{"label" => "Node 1", "expanded" => true},
+              signal_bindings: [
+                %{
+                  event: "on_toggle",
+                  widget_id: "tree-node-1",
+                  widget_kind: "tree_node",
+                  payload: %{"intent" => "toggle_node"}
+                }
+              ],
+              children: [%{id: "leaf", kind: "label", props: %{"text" => "Leaf"}}]
+            },
+            %{
+              id: "viewport-1",
+              kind: "viewport",
+              props: %{"scroll_top" => 12, "scroll_left" => 4},
+              signal_bindings: [
+                %{
+                  event: "on_scroll",
+                  widget_id: "viewport-1",
+                  widget_kind: "viewport",
+                  payload: %{"intent" => "sync_scroll"}
+                }
+              ],
+              children: [%{id: "copy", kind: "text", props: %{"content" => "Scrollable"}}]
+            },
+            %{
+              id: "main-split",
+              kind: "split_pane",
+              props: %{"sizes" => [30, 70], "orientation" => "vertical"},
+              signal_bindings: [
+                %{
+                  event: "on_resize_change",
+                  widget_id: "main-split",
+                  widget_kind: "split_pane",
+                  payload: %{"intent" => "resize"}
+                }
+              ],
+              children: [
+                %{id: "left-pane", kind: "label", props: %{"text" => "Left"}},
+                %{id: "right-pane", kind: "label", props: %{"text" => "Right"}}
+              ]
+            },
+            %{
+              id: "palette-1",
+              kind: "command_palette",
+              props: %{"query" => "dep", "active_command_id" => "deploy"},
+              signal_bindings: [
+                %{
+                  event: "on_change",
+                  widget_id: "palette-1",
+                  widget_kind: "command_palette",
+                  payload: %{"intent" => "update_query"}
+                },
+                %{
+                  event: "on_submit",
+                  widget_id: "palette-1",
+                  widget_kind: "command_palette",
+                  payload: %{"intent" => "submit_query"}
+                }
+              ],
+              children: [
+                %{
+                  id: "deploy",
+                  kind: "command",
+                  props: %{"label" => "Deploy"},
+                  signal_bindings: [
+                    %{
+                      event: "action",
+                      widget_id: "deploy",
+                      widget_kind: "command",
+                      payload: %{
+                        "intent" => "run_command",
+                        "payload" => %{"command_id" => "deploy"}
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      )
+      |> rendered_to_string()
+
+    assert rendered =~ "phx-value-event_click_node_id=&quot;tree-node-1&quot;"
+    assert rendered =~ "phx-value-event_click_expanded=&quot;true&quot;"
+    assert rendered =~ "data-scroll-top=&quot;12&quot;"
+    assert rendered =~ "data-live-ui-event=&quot;scroll&quot;"
+    assert rendered =~ "LiveUi.Viewport"
+    assert rendered =~ "data-pane-index=&quot;0&quot;"
+    assert rendered =~ "flex: 0 0 30%"
+    assert rendered =~ "data-live-ui-event=&quot;resize&quot;"
+    assert rendered =~ "LiveUi.SplitPane"
+    assert rendered =~ "phx-change=&quot;change&quot;"
+    assert rendered =~ "phx-submit=&quot;submit&quot;"
+    assert rendered =~ "data-active-command-id=&quot;deploy&quot;"
+    assert rendered =~ "phx-value-event_click_command_id=&quot;deploy&quot;"
+  end
+
+  test "renders monitoring widgets with structured filter and process-select actions" do
+    rendered =
+      render_component(&WidgetRegistry.render/1,
+        descriptor: %{
+          id: "monitor-root",
+          kind: "vbox",
+          props: %{},
+          children: [
+            %{
+              id: "logs",
+              kind: "log_viewer",
+              props: %{"filter" => "error", "lines" => ["error one"], "source" => "app.log"},
+              signal_bindings: [
+                %{
+                  event: "on_change",
+                  widget_id: "logs",
+                  widget_kind: "log_viewer",
+                  payload: %{"intent" => "filter_logs"}
+                },
+                %{
+                  event: "action",
+                  widget_id: "logs",
+                  widget_kind: "log_viewer",
+                  payload: %{"intent" => "refresh_logs"}
+                }
+              ]
+            },
+            %{
+              id: "processes",
+              kind: "process_monitor",
+              props: %{
+                "node" => "demo@127.0.0.1",
+                "processes" => [%{"pid" => "#PID<0.10.0>", "name" => "worker"}]
+              },
+              signal_bindings: [
+                %{
+                  event: "on_process_select",
+                  widget_id: "processes",
+                  widget_kind: "process_monitor",
+                  payload: %{"intent" => "select_process"}
+                }
+              ]
+            }
+          ]
+        }
+      )
+      |> rendered_to_string()
+
+    assert rendered =~ "Filter logs"
+    assert rendered =~ "phx-value-event_change_intent=&quot;filter_logs&quot;"
+    assert rendered =~ "phx-value-event_click_intent=&quot;refresh_logs&quot;"
+    assert rendered =~ "data-live-ui-source=&quot;app.log&quot;"
+    assert rendered =~ "demo@127.0.0.1"
+    assert rendered =~ "phx-value-event_click_pid=&quot;#PID&amp;lt;0.10.0&amp;gt;&quot;"
+    assert rendered =~ "phx-value-event_click_name=&quot;worker&quot;"
   end
 
   test "renders layouts by recursively dispatching child descriptors" do
