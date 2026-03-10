@@ -34,7 +34,7 @@ defmodule LiveUi.Specs.ParserTest do
         }
       ],
       "approval": {"required": true, "roles": ["maintainer"]},
-      "gates": [{"id": "local_spec_check", "kind": "mix_task", "target": "mix spec.check", "mode": "required"}]
+      "gates": [{"id": "local_spec_check", "kind": "mix_task", "target": "mix live_ui.spec.check", "mode": "required"}]
     }
     ```
 
@@ -52,7 +52,7 @@ defmodule LiveUi.Specs.ParserTest do
 
     ```spec-verification
     [
-      {"kind": "command", "target": "mix spec.check", "covers": ["example.requirement"]}
+      {"kind": "command", "target": "mix live_ui.spec.check", "covers": ["example.requirement"]}
     ]
     ```
 
@@ -63,7 +63,7 @@ defmodule LiveUi.Specs.ParserTest do
     ```
     """
 
-    document = Parser.parse_document(source, ".specs/module.example_subject.spec.md")
+    document = Parser.parse_document(source, ".spec/specs/module.example_subject.spec.md")
 
     assert document.meta["id"] == "module.example_subject"
     assert document.governance["owner"] == "team.live_ui"

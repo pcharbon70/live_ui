@@ -94,7 +94,7 @@ defmodule LiveUi.Specs.CheckerTest do
   defp parse_policy(tmpdir, policy_id) do
     Parser.parse_document(
       policy_source(policy_id),
-      Path.join(tmpdir, ".specs/#{policy_id}.spec.md")
+      Path.join(tmpdir, ".spec/specs/#{policy_id}.spec.md")
     )
   end
 
@@ -135,7 +135,7 @@ defmodule LiveUi.Specs.CheckerTest do
         }
       ],
       "approval": {"required": true, "roles": ["maintainer"]},
-      "gates": [{"id": "local_spec_check", "kind": "mix_task", "target": "mix spec.check", "mode": "required"}]
+      "gates": [{"id": "local_spec_check", "kind": "mix_task", "target": "mix live_ui.spec.check", "mode": "required"}]
     }
     ```
 
@@ -155,7 +155,7 @@ defmodule LiveUi.Specs.CheckerTest do
     [
       {"kind": "doc", "target": #{Jason.encode!(doc_target)}, "covers": ["example.requirement"]},
       {"kind": "test_file", "target": #{Jason.encode!(test_target)}, "covers": ["example.requirement"]},
-      {"kind": "command", "target": "mix spec.check", "covers": ["example.requirement"]}
+      {"kind": "command", "target": "mix live_ui.spec.check", "covers": ["example.requirement"]}
     ]
     ```
 
@@ -166,7 +166,7 @@ defmodule LiveUi.Specs.CheckerTest do
     ```
     """
 
-    Parser.parse_document(source, Path.join(tmpdir, ".specs/module.example_subject.spec.md"))
+    Parser.parse_document(source, Path.join(tmpdir, ".spec/specs/module.example_subject.spec.md"))
   end
 
   defp policy_source(policy_id) do
@@ -196,7 +196,7 @@ defmodule LiveUi.Specs.CheckerTest do
         }
       ],
       "approval": {"required": true, "roles": ["maintainer"]},
-      "gates": [{"id": "local_spec_check", "kind": "mix_task", "target": "mix spec.check", "mode": "required"}]
+      "gates": [{"id": "local_spec_check", "kind": "mix_task", "target": "mix live_ui.spec.check", "mode": "required"}]
     }
     ```
 
@@ -214,7 +214,7 @@ defmodule LiveUi.Specs.CheckerTest do
 
     ```spec-verification
     [
-      {"kind": "command", "target": "mix spec.check", "covers": [#{Jason.encode!("#{policy_id}.requirement")}]}
+      {"kind": "command", "target": "mix live_ui.spec.check", "covers": [#{Jason.encode!("#{policy_id}.requirement")}]}
     ]
     ```
     """

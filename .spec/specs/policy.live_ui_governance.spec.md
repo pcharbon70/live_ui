@@ -38,7 +38,7 @@ It keeps ownership, control-plane assignment, waiver hygiene, and policy relatio
     {
       "id": "local_spec_check",
       "kind": "mix_task",
-      "target": "mix spec.check",
+      "target": "mix live_ui.spec.check",
       "mode": "required"
     }
   ]
@@ -88,7 +88,7 @@ It keeps ownership, control-plane assignment, waiver hygiene, and policy relatio
 [
   {
     "id": "live_ui_governance.valid_non_policy_subject",
-    "given": ["a module or package subject in .specs"],
+    "given": ["a module or package subject in .spec/specs"],
     "when": ["the local checker parses the document"],
     "then": ["the subject contains a governance block and governed_by relationships to both local policy subjects"],
     "covers": [
@@ -144,7 +144,7 @@ It keeps ownership, control-plane assignment, waiver hygiene, and policy relatio
   },
   {
     "kind": "command",
-    "target": "mix spec.check",
+    "target": "mix live_ui.spec.check",
     "covers": [
       "live_ui_governance.subjects.declare_governance_blocks",
       "live_ui_governance.subjects.relate_to_policy_subjects",

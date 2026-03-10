@@ -1,6 +1,6 @@
-defmodule Mix.Tasks.Spec.Check do
+defmodule Mix.Tasks.LiveUi.Spec.Check do
   @moduledoc """
-  Runs the local spec governance/compliance checker and writes a derived JSON report.
+  Runs the repo-local governance/compliance overlay and writes a derived JSON report.
   """
 
   use Mix.Task
@@ -8,7 +8,7 @@ defmodule Mix.Tasks.Spec.Check do
   alias LiveUi.Specs
   alias LiveUi.Specs.Checker
 
-  @shortdoc "Validate local specs and emit a compliance report"
+  @shortdoc "Validate the local governance overlay and emit a compliance report"
 
   @impl true
   def run(args) do

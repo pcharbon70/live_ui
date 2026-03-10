@@ -47,7 +47,7 @@ This subject is the public library boundary for routing, session/context propaga
     {
       "id": "local_spec_check",
       "kind": "mix_task",
-      "target": "mix spec.check",
+      "target": "mix live_ui.spec.check",
       "mode": "required"
     }
   ]

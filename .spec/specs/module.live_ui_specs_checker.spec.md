@@ -1,6 +1,6 @@
 # LiveUi Specs Checker
 
-The specs checker subject defines the local parser, compliance evaluator, and Mix task used to govern `.specs/*.spec.md` files inside this repository.
+The specs checker subject defines the local parser, compliance evaluator, and Mix task used to govern `.spec/specs/*.spec.md` files inside this repository.
 
 This subject is intentionally local to `live_ui`. It implements the proposed governance/compliance split without requiring upstream changes to the broader Spec Led system.
 
@@ -9,7 +9,7 @@ This subject is intentionally local to `live_ui`. It implements the proposed gov
   "id": "module.live_ui_specs_checker",
   "kind": "module",
   "status": "draft",
-  "surface": ["LiveUi.Specs", "LiveUi.Specs.Parser", "LiveUi.Specs.Checker", "LiveUi.Specs.ComplianceReport", "Mix.Tasks.Spec.Check"],
+  "surface": ["LiveUi.Specs", "LiveUi.Specs.Parser", "LiveUi.Specs.Checker", "LiveUi.Specs.ComplianceReport", "Mix.Tasks.LiveUi.Spec.Check"],
   "relationships": [
     {"kind": "depends_on", "target": "package.live_ui"},
     {"kind": "depends_on", "target": "policy.live_ui_governance"},
@@ -46,7 +46,7 @@ This subject is intentionally local to `live_ui`. It implements the proposed gov
     {
       "id": "local_spec_check",
       "kind": "mix_task",
-      "target": "mix spec.check",
+      "target": "mix live_ui.spec.check",
       "mode": "required"
     }
   ]
@@ -77,13 +77,13 @@ This subject is intentionally local to `live_ui`. It implements the proposed gov
   },
   {
     "id": "live_ui_specs_checker.exposes_mix_task",
-    "statement": "When local developers or CI need to evaluate spec compliance, the repository shall expose a mix spec.check command that writes the report and exits non-zero on failures.",
+    "statement": "When local developers or CI need to evaluate spec compliance, the repository shall expose a mix live_ui.spec.check command that writes the report and exits non-zero on failures.",
     "priority": "must",
     "stability": "stable"
   },
   {
     "id": "live_ui_specs_checker.strict_mode_escalates_warnings",
-    "statement": "When mix spec.check is invoked with strict mode, the command shall also exit non-zero when warnings remain unresolved.",
+    "statement": "When mix live_ui.spec.check is invoked with strict mode, the command shall also exit non-zero when warnings remain unresolved.",
     "priority": "should",
     "stability": "stable"
   }
@@ -104,7 +104,7 @@ This subject is intentionally local to `live_ui`. It implements the proposed gov
   {
     "id": "live_ui_specs_checker.report_generation",
     "given": ["a repository with local spec files"],
-    "when": ["mix spec.check runs"],
+    "when": ["mix live_ui.spec.check runs"],
     "then": ["a compliance report JSON document is written under _build/specled and includes subject status, checks, findings, and active exceptions"],
     "covers": [
       "live_ui_specs_checker.writes_compliance_report",
@@ -114,7 +114,7 @@ This subject is intentionally local to `live_ui`. It implements the proposed gov
   {
     "id": "live_ui_specs_checker.strict_mode",
     "given": ["a repository whose verification targets still contain warnings"],
-    "when": ["mix spec.check --strict runs"],
+    "when": ["mix live_ui.spec.check --strict runs"],
     "then": ["the command exits non-zero instead of silently accepting the warnings"],
     "covers": ["live_ui_specs_checker.strict_mode_escalates_warnings"]
   },
@@ -158,7 +158,7 @@ This subject is intentionally local to `live_ui`. It implements the proposed gov
   },
   {
     "kind": "command",
-    "target": "mix spec.check",
+    "target": "mix live_ui.spec.check",
     "covers": [
       "live_ui_specs_checker.writes_compliance_report",
       "live_ui_specs_checker.exposes_mix_task",

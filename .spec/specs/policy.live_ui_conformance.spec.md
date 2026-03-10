@@ -36,7 +36,7 @@ This policy subject defines the local conformance expectations for spec parsing,
     {
       "id": "local_spec_check",
       "kind": "mix_task",
-      "target": "mix spec.check",
+      "target": "mix live_ui.spec.check",
       "mode": "required"
     }
   ]
@@ -81,7 +81,7 @@ This policy subject defines the local conformance expectations for spec parsing,
   {
     "id": "live_ui_conformance.report_written",
     "given": ["a repository containing local spec files"],
-    "when": ["mix spec.check runs"],
+    "when": ["mix live_ui.spec.check runs"],
     "then": ["a derived compliance report is written to _build/specled/compliance-report.json"],
     "covers": ["live_ui_conformance.report.emits_derived_json"]
   },
@@ -133,7 +133,7 @@ This policy subject defines the local conformance expectations for spec parsing,
   },
   {
     "kind": "command",
-    "target": "mix spec.check",
+    "target": "mix live_ui.spec.check",
     "covers": [
       "live_ui_conformance.report.emits_derived_json",
       "live_ui_conformance.covers.references_local_requirements"

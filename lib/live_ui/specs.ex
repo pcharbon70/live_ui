@@ -9,7 +9,7 @@ defmodule LiveUi.Specs do
   alias LiveUi.Specs.Parser
 
   @spec parse_documents(String.t()) :: [Document.t()]
-  def parse_documents(glob \\ ".specs/*.spec.md") do
+  def parse_documents(glob \\ ".spec/specs/**/*.spec.md") do
     Parser.read_documents(glob)
   end
 
