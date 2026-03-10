@@ -24,6 +24,7 @@ defmodule LiveUi.MixProject do
     [
       {:jason, "~> 1.4"},
       {:jido_signal, "~> 1.0"},
+      {:spec_led_ex, git: "https://github.com/specleddev/specled_ex.git"},
       {:phoenix_live_view, "~> 1.0"},
       {:ex_doc, "~> 0.38", only: :dev, runtime: false}
     ]
