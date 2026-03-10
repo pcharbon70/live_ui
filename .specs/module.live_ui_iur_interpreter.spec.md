@@ -13,8 +13,43 @@ It is the adapter contract between platform-agnostic UI data and LiveView-specif
   "relationships": [
     {"kind": "depends_on", "target": "package.live_ui"},
     {"kind": "depends_on", "target": "package.unified_iur"},
+    {"kind": "governed_by", "target": "policy.live_ui_governance"},
+    {"kind": "governed_by", "target": "policy.live_ui_conformance"},
     {"kind": "relates_to", "target": "module.live_ui_widget_system"},
     {"kind": "relates_to", "target": "module.live_ui_signal_bridge"}
+  ]
+}
+```
+
+```spec-governance
+{
+  "owner": "team.live_ui",
+  "criticality": "high",
+  "primary_plane": "rendering",
+  "change_rules": [
+    {
+      "id": "interpreter_changes_require_widget_and_signal_alignment",
+      "when": {
+        "change_types": ["behavior_shape"]
+      },
+      "requires": [
+        {"subject_ids": ["module.live_ui_widget_system", "module.live_ui_signal_bridge"]},
+        {"verification_kinds": ["test_file"]}
+      ],
+      "severity": "error"
+    }
+  ],
+  "approval": {
+    "required": true,
+    "roles": ["maintainer"]
+  },
+  "gates": [
+    {
+      "id": "local_spec_check",
+      "kind": "mix_task",
+      "target": "mix spec.check",
+      "mode": "required"
+    }
   ]
 }
 ```
