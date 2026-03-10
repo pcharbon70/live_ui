@@ -1,6 +1,6 @@
 defmodule LiveUi.WidgetRegistry do
   @moduledoc """
-  Local widget registry used by the compliance-closing tests and initial renderer skeleton.
+  Widget registry mapping normalized descriptor kinds to renderer families.
   """
 
   use Phoenix.Component
@@ -8,26 +8,51 @@ defmodule LiveUi.WidgetRegistry do
   alias LiveUi.Components.BasicWidgets
   alias LiveUi.Components.DataViz
   alias LiveUi.Components.Extensions
+  alias LiveUi.Components.Feedback
+  alias LiveUi.Components.Forms
   alias LiveUi.Components.Layouts
+  alias LiveUi.Components.Navigation
 
   @kind_to_module %{
+    "alert_dialog" => Feedback,
+    "bar_chart" => DataViz,
     "button" => BasicWidgets,
     "canvas" => DataViz,
     "chart" => DataViz,
-    "command_palette" => Extensions,
-    "dialog" => Extensions,
+    "column" => Forms,
+    "command" => Navigation,
+    "command_palette" => Navigation,
+    "context_menu" => Navigation,
+    "dialog" => Feedback,
+    "dialog_button" => Feedback,
+    "form_builder" => Forms,
+    "form_field" => Forms,
+    "gauge" => DataViz,
+    "grid" => Layouts,
     "hbox" => Layouts,
     "label" => BasicWidgets,
-    "pick_list" => Extensions,
-    "split_pane" => Extensions,
-    "table" => Extensions,
-    "tabs" => Extensions,
+    "line_chart" => DataViz,
+    "log_viewer" => Extensions,
+    "menu" => Navigation,
+    "menu_item" => Navigation,
+    "pick_list" => Forms,
+    "pick_list_option" => Forms,
+    "process_monitor" => Extensions,
+    "sparkline" => DataViz,
+    "split_pane" => Layouts,
+    "stack" => Layouts,
+    "stream_widget" => Extensions,
+    "tab" => Navigation,
+    "table" => Forms,
+    "tabs" => Navigation,
     "text" => BasicWidgets,
     "text_input" => BasicWidgets,
-    "toast" => Extensions,
-    "tree_view" => Extensions,
+    "toast" => Feedback,
+    "tree_node" => Navigation,
+    "tree_view" => Navigation,
     "vbox" => Layouts,
-    "viewport" => Extensions
+    "viewport" => Layouts,
+    "zbox" => Layouts
   }
 
   @spec supported_kinds() :: [String.t()]
@@ -47,6 +72,12 @@ defmodule LiveUi.WidgetRegistry do
 
   attr(:descriptor, :map, required: true)
 
+  def render(%{descriptor: nil} = assigns) do
+    ~H"""
+    <div class="live-ui-empty"></div>
+    """
+  end
+
   def render(assigns) do
     descriptor = Map.new(assigns.descriptor)
     kind = normalize_kind(Map.get(descriptor, :kind, Map.get(descriptor, "kind")))
@@ -58,10 +89,16 @@ defmodule LiveUi.WidgetRegistry do
         <LiveUi.Components.BasicWidgets.render descriptor={@descriptor} />
       <% {:ok, LiveUi.Components.Layouts} -> %>
         <LiveUi.Components.Layouts.render descriptor={@descriptor} />
-      <% {:ok, LiveUi.Components.Extensions} -> %>
-        <LiveUi.Components.Extensions.render descriptor={@descriptor} />
       <% {:ok, LiveUi.Components.DataViz} -> %>
         <LiveUi.Components.DataViz.render descriptor={@descriptor} />
+      <% {:ok, LiveUi.Components.Navigation} -> %>
+        <LiveUi.Components.Navigation.render descriptor={@descriptor} />
+      <% {:ok, LiveUi.Components.Feedback} -> %>
+        <LiveUi.Components.Feedback.render descriptor={@descriptor} />
+      <% {:ok, LiveUi.Components.Forms} -> %>
+        <LiveUi.Components.Forms.render descriptor={@descriptor} />
+      <% {:ok, LiveUi.Components.Extensions} -> %>
+        <LiveUi.Components.Extensions.render descriptor={@descriptor} />
       <% :error -> %>
         <% raise ConfigurationError.new("unsupported widget kind", %{kind: inspect(@descriptor.kind)}) %>
     <% end %>

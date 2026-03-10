@@ -33,9 +33,10 @@ defmodule LiveUi.Components.WidgetRenderingTest do
       )
       |> rendered_to_string()
 
-    assert rendered =~ "live-ui-extension--split_pane"
+    assert rendered =~ "live-ui-layout--split_pane"
     assert rendered =~ "LiveUi.SplitPane"
     assert rendered =~ "gap-2"
+    refute rendered =~ "align-items: nil"
   end
 
   test "renders layouts by recursively dispatching child descriptors" do

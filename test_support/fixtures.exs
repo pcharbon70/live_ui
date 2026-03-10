@@ -26,10 +26,27 @@ defmodule LiveUi.TestSupport.CounterScreen do
 
   def view(state) do
     %{
-      kind: :counter,
-      count: state.count,
-      initialized?: state.initialized?,
-      mount_token: state.mount_token
+      id: "counter-root",
+      kind: "vbox",
+      spacing: 2,
+      children: [
+        %{
+          id: "counter-label",
+          kind: "text",
+          content: "Count: #{state.count}",
+          style: %{class: "counter-value"}
+        },
+        %{
+          id: "increment-button",
+          kind: "button",
+          label: "Increment",
+          on_click: %{intent: "activate", payload: %{delta: 1}}
+        }
+      ],
+      meta: %{
+        initialized?: state.initialized?,
+        mount_token: state.mount_token
+      }
     }
   end
 
@@ -56,6 +73,14 @@ defmodule LiveUi.TestSupport.InvalidScreen do
 
   def init(_opts), do: %{}
   def update(state, _signal), do: state
+end
+
+defmodule LiveUi.TestSupport.InvalidIurScreen do
+  @moduledoc false
+
+  def init(_opts), do: %{}
+  def update(state, _signal), do: state
+  def view(_state), do: %{kind: "totally_unknown", id: "bad-root"}
 end
 
 defmodule LiveUi.TestSupport.WrapperLive do

@@ -7,6 +7,7 @@ defmodule LiveUi.RuntimeTest do
   alias LiveUi.Runtime.Model
   alias LiveUi.TestSupport.CounterScreen
   alias LiveUi.TestSupport.InvalidScreen
+  alias LiveUi.TestSupport.InvalidIurScreen
 
   test "initializes the runtime model from a valid source module" do
     assert {:ok, %Model{} = model} =
@@ -21,12 +22,40 @@ defmodule LiveUi.RuntimeTest do
     assert model.screen_state == %{count: 2, initialized?: true, mount_token: "boot-1"}
 
     assert model.iur_tree == %{
-             kind: :counter,
-             count: 2,
-             initialized?: true,
-             mount_token: "boot-1"
+             id: "counter-root",
+             kind: "vbox",
+             spacing: 2,
+             meta: %{initialized?: true, mount_token: "boot-1"},
+             children: [
+               %{
+                 id: "counter-label",
+                 kind: "text",
+                 content: "Count: 2",
+                 style: %{class: "counter-value"}
+               },
+               %{
+                 id: "increment-button",
+                 kind: "button",
+                 label: "Increment",
+                 on_click: %{intent: "activate", payload: %{delta: 1}}
+               }
+             ]
            }
 
+    assert model.descriptor_tree.kind == "vbox"
+    assert Enum.map(model.descriptor_tree.children, & &1.kind) == ["text", "button"]
+
+    assert model.signal_bindings == [
+             %{
+               event: "on_click",
+               widget_id: "increment-button",
+               widget_kind: "button",
+               payload: %{"intent" => "activate", "payload" => %{"delta" => 1}}
+             }
+           ]
+
+    assert model.render_metadata == %{node_count: 3, root_id: "counter-root", root_kind: "vbox"}
+    assert model.widget_state == %{}
     assert model.runtime_context == %{request_id: "req-1"}
   end
 
@@ -60,6 +89,8 @@ defmodule LiveUi.RuntimeTest do
              widget_id: "increment-button",
              widget_kind: "button"
            }
+
+    assert hd(updated_model.descriptor_tree.children).props["content"] == "Count: 4"
   end
 
   test "accepts passthrough jido signals without rebuilding metadata from the payload" do
@@ -80,6 +111,7 @@ defmodule LiveUi.RuntimeTest do
     assert updated_model.screen_state.count == 7
     assert updated_model.last_signal == signal
     assert updated_model.screen_state.last_signal_type == "live_ui.button.increment"
+    assert hd(updated_model.descriptor_tree.children).props["content"] == "Count: 7"
   end
 
   test "rejects event payloads missing required widget metadata" do
@@ -97,5 +129,12 @@ defmodule LiveUi.RuntimeTest do
              Runtime.init(source: InvalidScreen, source_opts: [], runtime_context: %{})
 
     assert error.message =~ "missing required callbacks"
+  end
+
+  test "returns interpreter failures when the source emits an unsupported node kind" do
+    assert {:error, %ConfigurationError{} = error} =
+             Runtime.init(source: InvalidIurScreen, source_opts: [], runtime_context: %{})
+
+    assert error.message =~ "unsupported"
   end
 end
