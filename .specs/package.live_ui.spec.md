@@ -15,12 +15,47 @@ The package also needs an explicit compatibility story for the current gap betwe
   "relationships": [
     {"kind": "depends_on", "target": "package.unified_ui"},
     {"kind": "depends_on", "target": "package.unified_iur"},
+    {"kind": "governed_by", "target": "policy.live_ui_governance"},
+    {"kind": "governed_by", "target": "policy.live_ui_conformance"},
     {"kind": "relates_to", "target": "module.live_ui_host_integration"},
     {"kind": "relates_to", "target": "module.live_ui_screen_macro"},
     {"kind": "relates_to", "target": "module.live_ui_runtime"},
     {"kind": "relates_to", "target": "module.live_ui_iur_interpreter"},
     {"kind": "relates_to", "target": "module.live_ui_widget_system"},
     {"kind": "relates_to", "target": "module.live_ui_signal_bridge"}
+  ]
+}
+```
+
+```spec-governance
+{
+  "owner": "team.live_ui",
+  "criticality": "high",
+  "primary_plane": "package",
+  "change_rules": [
+    {
+      "id": "package_contract_changes_require_architecture_alignment",
+      "when": {
+        "change_types": ["behavior_shape"]
+      },
+      "requires": [
+        {"artifacts": ["docs/architecture.md"]},
+        {"verification_kinds": ["doc", "test_file"]}
+      ],
+      "severity": "error"
+    }
+  ],
+  "approval": {
+    "required": true,
+    "roles": ["maintainer"]
+  },
+  "gates": [
+    {
+      "id": "local_spec_check",
+      "kind": "mix_task",
+      "target": "mix spec.check",
+      "mode": "required"
+    }
   ]
 }
 ```

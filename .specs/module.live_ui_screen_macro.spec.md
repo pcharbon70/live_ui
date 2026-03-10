@@ -14,7 +14,42 @@ This subject should keep the host-facing wrapper small and explicit while hiding
     {"kind": "depends_on", "target": "package.live_ui"},
     {"kind": "depends_on", "target": "module.live_ui_host_integration"},
     {"kind": "depends_on", "target": "module.live_ui_runtime"},
+    {"kind": "governed_by", "target": "policy.live_ui_governance"},
+    {"kind": "governed_by", "target": "policy.live_ui_conformance"},
     {"kind": "relates_to", "target": "module.live_ui_signal_bridge"}
+  ]
+}
+```
+
+```spec-governance
+{
+  "owner": "team.live_ui",
+  "criticality": "medium",
+  "primary_plane": "integration",
+  "change_rules": [
+    {
+      "id": "screen_macro_changes_require_host_and_runtime_alignment",
+      "when": {
+        "change_types": ["behavior_shape"]
+      },
+      "requires": [
+        {"subject_ids": ["module.live_ui_host_integration", "module.live_ui_runtime"]},
+        {"verification_kinds": ["test_file"]}
+      ],
+      "severity": "error"
+    }
+  ],
+  "approval": {
+    "required": true,
+    "roles": ["maintainer"]
+  },
+  "gates": [
+    {
+      "id": "local_spec_check",
+      "kind": "mix_task",
+      "target": "mix spec.check",
+      "mode": "required"
+    }
   ]
 }
 ```

@@ -1,0 +1,30 @@
+defmodule LiveUi.Architecture.PackageContractTest do
+  use ExUnit.Case, async: true
+
+  alias LiveUi
+  alias LiveUi.Assets
+  alias LiveUi.Live.DynamicLive
+  alias LiveUi.Router
+  alias LiveUi.Screen
+  alias LiveUi.WidgetRegistry
+
+  test "exposes the package entrypoints used by host apps" do
+    session =
+      LiveUi.dynamic_session(LiveUi.TestSupport.CounterScreen,
+        context: %{trace_id: "trace-1"},
+        source_opts: [count: 3]
+      )
+
+    assert LiveUi.dynamic_session_key() == "live_ui_dynamic"
+    assert {:ok, config} = LiveUi.fetch_dynamic_session(session)
+    assert config["source"] == LiveUi.TestSupport.CounterScreen
+    assert config["source_opts"] == [count: 3]
+    assert config["context"] == %{trace_id: "trace-1"}
+
+    assert Router.dynamic_live() == DynamicLive
+    assert Router.screen(LiveUi.TestSupport.WrapperLive) == LiveUi.TestSupport.WrapperLive
+    assert macro_exported?(Screen, :__using__, 1)
+    assert WidgetRegistry.supported_kind?("canvas")
+    assert Assets.hook_name("viewport") == "LiveUi.Viewport"
+  end
+end
