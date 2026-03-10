@@ -98,7 +98,12 @@ defmodule LiveUi.Components.Extensions do
                     }
                   ) %>
                 <li>
-                  <button :if={@process_binding} type="button" {process_attrs}>
+                  <button
+                    :if={@process_binding}
+                    type="button"
+                    class={["live-ui-process-monitor__process", if(process_selected?(@props, pid), do: "is-selected")]}
+                    {process_attrs}
+                  >
                     <%= process_label(process) %>
                   </button>
                   <span :if={is_nil(@process_binding)}>
@@ -135,4 +140,8 @@ defmodule LiveUi.Components.Extensions do
   end
 
   defp process_value(_process, _key), do: nil
+
+  defp process_selected?(props, pid) do
+    Helpers.scalar_string(Map.get(props, "selected_pid")) == Helpers.scalar_string(pid)
+  end
 end

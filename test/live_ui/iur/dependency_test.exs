@@ -22,6 +22,11 @@ defmodule LiveUi.IUR.DependencyTest do
     assert error.message =~ "incomplete"
   end
 
+  test "does not treat ordinary widget source props as schema markers" do
+    assert :ok = Dependency.validate_markers(%{"kind" => "log_viewer", "source" => "app.log"})
+    refute Dependency.markers_present?(%{"kind" => "log_viewer", "source" => "app.log"})
+  end
+
   test "rejects unsupported schema names" do
     assert {:error, error} =
              Dependency.validate_markers(%{

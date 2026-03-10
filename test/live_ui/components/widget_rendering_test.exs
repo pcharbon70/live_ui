@@ -338,6 +338,92 @@ defmodule LiveUi.Components.WidgetRenderingTest do
     assert rendered =~ "phx-value-event_click_name=&quot;worker&quot;"
   end
 
+  test "renders server-authoritative overlay state for composite widgets" do
+    rendered =
+      render_component(&WidgetRegistry.render/1,
+        descriptor: %{
+          id: "state-root",
+          kind: "vbox",
+          props: %{},
+          children: [
+            %{
+              id: "tabs-1",
+              kind: "tabs",
+              props: %{"active_tab" => "details", "open" => true},
+              children: [
+                %{id: "summary", kind: "tab", props: %{"label" => "Summary"}},
+                %{id: "details", kind: "tab", props: %{"label" => "Details"}}
+              ]
+            },
+            %{
+              id: "tree-node-1",
+              kind: "tree_node",
+              props: %{"label" => "Node 1", "expanded" => false, "selected" => true},
+              children: []
+            },
+            %{
+              id: "users-table",
+              kind: "table",
+              props: %{
+                "columns" => [%{"key" => "name", "header" => "Name"}],
+                "data" => [%{"id" => "user-1", "name" => "Pascal"}],
+                "selected_row_id" => "user-1",
+                "sort_column" => "name",
+                "sort_direction" => "asc"
+              },
+              signal_bindings: [
+                %{
+                  event: "on_sort",
+                  widget_id: "users-table",
+                  widget_kind: "table",
+                  payload: %{"intent" => "sort_rows"}
+                },
+                %{
+                  event: "on_row_select",
+                  widget_id: "users-table",
+                  widget_kind: "table",
+                  payload: %{"intent" => "select_row"}
+                }
+              ]
+            },
+            %{
+              id: "palette-1",
+              kind: "command_palette",
+              props: %{"query" => "dep", "active_command_id" => "deploy", "open" => false},
+              children: [%{id: "deploy", kind: "command", props: %{"label" => "Deploy"}}]
+            },
+            %{
+              id: "processes",
+              kind: "process_monitor",
+              props: %{
+                "selected_pid" => "#PID<0.10.0>",
+                "processes" => [%{"pid" => "#PID<0.10.0>", "name" => "worker"}]
+              },
+              signal_bindings: [
+                %{
+                  event: "on_process_select",
+                  widget_id: "processes",
+                  widget_kind: "process_monitor",
+                  payload: %{"intent" => "select_process"}
+                }
+              ]
+            }
+          ]
+        }
+      )
+      |> rendered_to_string()
+
+    assert rendered =~ "live-ui-tabs__tab is-active"
+    assert rendered =~ "live-ui-tree__node is-selected"
+    assert rendered =~ "aria-expanded=&quot;false&quot;"
+    assert rendered =~ "data-selected-row-id=&quot;user-1&quot;"
+    assert rendered =~ "live-ui-table__sort is-sorted"
+    assert rendered =~ "live-ui-table__row is-selected"
+    assert rendered =~ "is-closed"
+    assert rendered =~ "data-open=&quot;false&quot;"
+    assert rendered =~ "live-ui-process-monitor__process is-selected"
+  end
+
   test "renders layouts by recursively dispatching child descriptors" do
     rendered =
       render_component(&WidgetRegistry.render/1,
