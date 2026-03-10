@@ -4,6 +4,7 @@ defmodule LiveUi.Host.EntrypointParityTest do
   alias LiveUi
   alias LiveUi.Live.DynamicLive
   alias LiveUi.TestSupport.CounterScreen
+  alias LiveUi.TestSupport.RawIur
   alias LiveUi.TestSupport.WrapperLive
   alias Phoenix.LiveView.Socket
 
@@ -33,6 +34,34 @@ defmodule LiveUi.Host.EntrypointParityTest do
     assert wrapper_model.iur_tree == dynamic_model.iur_tree
     assert wrapper_model.status == :ready
     assert dynamic_model.status == :ready
+    assert Map.keys(Map.from_struct(wrapper_model)) == Map.keys(Map.from_struct(dynamic_model))
+  end
+
+  test "dynamic raw iur entrypoints still initialize the same runtime model struct" do
+    wrapper_socket = socket_for(WrapperLive, "wrapper-iur-parity", :show)
+    dynamic_socket = socket_for(DynamicLive, "dynamic-iur-parity", nil)
+
+    {:ok, wrapper_mounted} =
+      WrapperLive.mount(
+        %{"request_id" => "parity-iur-wrapper"},
+        %{"count" => 5, "mount_token" => "iur-shape"},
+        wrapper_socket
+      )
+
+    {:ok, dynamic_mounted} =
+      DynamicLive.mount(
+        %{"request_id" => "parity-iur-1"},
+        LiveUi.dynamic_iur_session(RawIur.counter_tree(5)),
+        dynamic_socket
+      )
+
+    wrapper_model = wrapper_mounted.assigns.live_ui_model
+    dynamic_model = dynamic_mounted.assigns.live_ui_model
+
+    assert dynamic_model.source.kind == :iur
+    assert dynamic_model.screen_state == %{}
+    assert dynamic_model.status == :ready
+    assert dynamic_model.descriptor_tree.id == "raw-counter-root"
     assert Map.keys(Map.from_struct(wrapper_model)) == Map.keys(Map.from_struct(dynamic_model))
   end
 

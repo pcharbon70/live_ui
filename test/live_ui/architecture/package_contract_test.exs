@@ -6,6 +6,7 @@ defmodule LiveUi.Architecture.PackageContractTest do
   alias LiveUi.Live.DynamicLive
   alias LiveUi.Router
   alias LiveUi.Screen
+  alias LiveUi.TestSupport.RawIur
   alias LiveUi.WidgetRegistry
 
   test "exposes the package entrypoints used by host apps" do
@@ -20,6 +21,13 @@ defmodule LiveUi.Architecture.PackageContractTest do
     assert config["source"] == LiveUi.TestSupport.CounterScreen
     assert config["source_opts"] == [count: 3]
     assert config["context"] == %{trace_id: "trace-1"}
+
+    iur_session =
+      LiveUi.dynamic_iur_session(RawIur.counter_tree(4), context: %{trace_id: "trace-iur-1"})
+
+    assert {:ok, iur_config} = LiveUi.fetch_dynamic_session(iur_session)
+    assert iur_config["iur"] == RawIur.counter_tree(4)
+    assert iur_config["context"] == %{trace_id: "trace-iur-1"}
 
     assert Router.dynamic_live() == DynamicLive
     assert Router.screen(LiveUi.TestSupport.WrapperLive) == LiveUi.TestSupport.WrapperLive

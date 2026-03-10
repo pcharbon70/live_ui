@@ -6,7 +6,8 @@ defmodule LiveUi do
   declare tiny wrapper LiveViews around `UnifiedUi` screen modules.
 
   `LiveUi.Live.DynamicLive` remains available for dynamic rendering paths and
-  expects a session envelope produced by `dynamic_session/2`.
+  expects a session envelope produced by `dynamic_session/2` or
+  `dynamic_iur_session/2`.
   """
 
   alias LiveUi.ConfigurationError
@@ -31,6 +32,20 @@ defmodule LiveUi do
       dynamic_session_key() => %{
         "source" => source_module,
         "source_opts" => Keyword.get(opts, :source_opts, []),
+        "context" => Keyword.get(opts, :context, %{})
+      }
+    }
+  end
+
+  @doc """
+  Builds the session envelope for mounting a canonical raw IUR payload through
+  `LiveUi.Live.DynamicLive`.
+  """
+  @spec dynamic_iur_session(term(), [dynamic_session_option()]) :: map()
+  def dynamic_iur_session(iur_tree, opts \\ []) when is_list(opts) do
+    %{
+      dynamic_session_key() => %{
+        "iur" => iur_tree,
         "context" => Keyword.get(opts, :context, %{})
       }
     }

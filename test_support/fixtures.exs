@@ -68,6 +68,30 @@ defmodule LiveUi.TestSupport.CounterScreen do
   defp normalize_integer(_value), do: 1
 end
 
+defmodule LiveUi.TestSupport.RawIur do
+  @moduledoc false
+
+  def counter_tree(count \\ 1) do
+    %{
+      "schema" => "unified_iur",
+      "source" => "live_ui_test",
+      "version" => "1.0.0",
+      "id" => "raw-counter-root",
+      "kind" => "vbox",
+      "spacing" => 2,
+      "children" => [
+        %{"id" => "raw-counter-label", "kind" => "text", "content" => "Count: #{count}"},
+        %{
+          "id" => "raw-counter-button",
+          "kind" => "button",
+          "label" => "Increment",
+          "on_click" => %{"intent" => "activate", "payload" => %{"delta" => 1}}
+        }
+      ]
+    }
+  end
+end
+
 defmodule LiveUi.TestSupport.InvalidScreen do
   @moduledoc false
 
