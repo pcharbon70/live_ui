@@ -101,6 +101,23 @@ defmodule LiveUi.Components.Helpers do
     ] ++ payload_attrs(live_event, payload)
   end
 
+  @spec hook_event_attrs(String.t(), map(), map() | nil, map()) :: keyword()
+  def hook_event_attrs(event_name, descriptor, binding, extra_payload \\ %{})
+
+  def hook_event_attrs(_event_name, _descriptor, nil, _extra_payload), do: []
+
+  def hook_event_attrs(event_name, descriptor, binding, extra_payload) do
+    event_name = normalize_event_name(event_name)
+    payload = binding_payload(binding) |> Map.merge(normalize_payload_map(extra_payload))
+
+    [
+      {"data-live-ui-event", event_name},
+      {"data-live-ui-intent", intent(binding, event_name)},
+      {"data-live-ui-widget-id", id(descriptor)},
+      {"data-live-ui-widget-kind", kind(descriptor)}
+    ] ++ hook_payload_attrs(payload)
+  end
+
   @spec merge_attrs([keyword()]) :: keyword()
   def merge_attrs(attr_lists) when is_list(attr_lists) do
     attr_lists
@@ -148,6 +165,16 @@ defmodule LiveUi.Components.Helpers do
           ]
       end
     end)
+  end
+
+  defp hook_payload_attrs(payload) do
+    case Map.drop(payload, ["intent"]) do
+      payload when map_size(payload) == 0 ->
+        []
+
+      payload ->
+        [{"data-live-ui-payload", Jason.encode!(ValueNormalizer.normalize_map(payload))}]
+    end
   end
 
   defp scalar?(value) when is_binary(value) or is_integer(value) or is_float(value), do: true

@@ -29,6 +29,34 @@ defmodule LiveUi.Components.Navigation do
         :menu_item_attrs,
         Helpers.event_attrs("click", descriptor, action_binding(descriptor))
       )
+      |> assign(
+        :command_attrs,
+        Helpers.event_attrs("click", descriptor, action_binding(descriptor))
+      )
+      |> assign(:tree_binding, Helpers.binding(descriptor, ["on_select", "on_toggle"]))
+      |> assign(
+        :palette_form_attrs,
+        Helpers.merge_attrs([
+          Helpers.event_attrs("change", descriptor, Helpers.binding(descriptor, "on_change")),
+          Helpers.event_attrs(
+            "submit",
+            descriptor,
+            Helpers.binding(descriptor, ["on_submit", "action"])
+          )
+        ])
+      )
+      |> assign(
+        :palette_hook_attrs,
+        Helpers.hook_event_attrs(
+          "change",
+          descriptor,
+          Helpers.binding(descriptor, "on_change"),
+          %{
+            "active_command_id" => Map.get(props, "active_command_id"),
+            "open" => Map.get(props, "open", true)
+          }
+        )
+      )
 
     ~H"""
     <%= if Helpers.visible?(@descriptor) do %>
@@ -63,7 +91,7 @@ defmodule LiveUi.Components.Navigation do
                 <button
                   type="button"
                   class={["live-ui-tabs__tab", if(Helpers.id(tab) == active_tab(@props, @children), do: "is-active")]}
-                  {tab_attrs}
+                  {tab_attrs ++ [{"phx-value-event_click_tab_index", to_string(tab_index(tab, @children))}]}
                 >
                   <%= Map.get(Helpers.props(tab), "label", Helpers.id(tab)) %>
                 </button>
@@ -75,7 +103,19 @@ defmodule LiveUi.Components.Navigation do
           </section>
         <% "tree_node" -> %>
           <li id={@id} class={@classes}>
-            <button type="button" phx-click="click" phx-value-widget_id={@id} phx-value-widget_kind={@kind} phx-value-intent={tree_intent(@descriptor)}>
+            <button
+              type="button"
+              {Helpers.event_attrs(
+                "click",
+                nil,
+                @descriptor,
+                @tree_binding,
+                %{
+                  "expanded" => Helpers.truthy?(Map.get(@props, "expanded", false)),
+                  "node_id" => @id
+                }
+              )}
+            >
               <%= Map.get(@props, "label", @id) %>
             </button>
             <%= if Helpers.truthy?(Map.get(@props, "expanded", false)) and @children != [] do %>
@@ -85,11 +125,19 @@ defmodule LiveUi.Components.Navigation do
         <% "tree_view" -> %>
           <section id={@id} class={@classes} style={@style}><ul><%= for child <- @children do %><LiveUi.WidgetRegistry.render descriptor={child} /><% end %></ul></section>
         <% "command" -> %>
-          <button id={@id} type="button" class={@classes}><%= Map.get(@props, "label", "Command") %></button>
+          <button id={@id} type="button" class={@classes} {@command_attrs}><%= Map.get(@props, "label", "Command") %></button>
         <% "command_palette" -> %>
-          <section id={@id} class={@classes} style={@style} data-live-ui-hook={@hook}>
-            <input type="search" placeholder={Map.get(@props, "placeholder", "Search commands")} />
-            <ul><%= for child <- @children do %><LiveUi.WidgetRegistry.render descriptor={child} /><% end %></ul>
+          <section id={@id} class={@classes} style={@style} data-live-ui-hook={@hook} {@palette_hook_attrs}>
+            <form class="live-ui-command-palette__form" {@palette_form_attrs}>
+              <input
+                type="search"
+                name="query"
+                value={Map.get(@props, "query", "")}
+                placeholder={Map.get(@props, "placeholder", "Search commands")}
+              />
+            </form>
+            <ul data-active-command-id={Map.get(@props, "active_command_id")}>
+              <%= for child <- @children do %><LiveUi.WidgetRegistry.render descriptor={child} /><% end %></ul>
           </section>
       <% end %>
     <% end %>
@@ -110,8 +158,9 @@ defmodule LiveUi.Components.Navigation do
     Enum.find(children, fn child -> Helpers.id(child) == active_id end)
   end
 
-  defp action_binding(descriptor), do: Helpers.binding(descriptor, ["action", "on_select"])
+  defp tab_index(tab, children) do
+    Enum.find_index(children, fn child -> Helpers.id(child) == Helpers.id(tab) end) || 0
+  end
 
-  defp tree_intent(descriptor),
-    do: descriptor |> Helpers.binding(["on_select", "on_toggle"]) |> Helpers.intent("select")
+  defp action_binding(descriptor), do: Helpers.binding(descriptor, ["action", "on_select"])
 end

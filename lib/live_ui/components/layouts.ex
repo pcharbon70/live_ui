@@ -25,6 +25,8 @@ defmodule LiveUi.Components.Layouts do
       )
       |> assign(:style, layout_style(kind, props, Helpers.inline_style(descriptor)))
       |> assign(:hook, Helpers.hook_name(descriptor))
+      |> assign(:viewport_binding, Helpers.binding(descriptor, "on_scroll"))
+      |> assign(:split_binding, Helpers.binding(descriptor, "on_resize_change"))
 
     ~H"""
     <%= if Helpers.visible?(@descriptor) do %>
@@ -48,6 +50,43 @@ defmodule LiveUi.Components.Layouts do
               <div class="live-ui-zbox__layer" style={zbox_style(@props, child, index)}>
                 <LiveUi.WidgetRegistry.render descriptor={child} />
               </div>
+            <% end %>
+          <% "viewport" -> %>
+            <div
+              class="live-ui-viewport__content"
+              data-scroll-top={Map.get(@props, "scroll_top", 0)}
+              data-scroll-left={Map.get(@props, "scroll_left", 0)}
+              {Helpers.hook_event_attrs("scroll", @descriptor, @viewport_binding, %{
+                "axis" => Map.get(@props, "axis", "both")
+              })}
+            >
+              <%= for child <- @children do %>
+                <LiveUi.WidgetRegistry.render descriptor={child} />
+              <% end %>
+            </div>
+          <% "split_pane" -> %>
+            <%= for {child, index} <- Enum.with_index(@children) do %>
+              <div
+                class="live-ui-split-pane__pane"
+                data-pane-index={index}
+                style={split_pane_style(@props, @children, index)}
+              >
+                <LiveUi.WidgetRegistry.render descriptor={child} />
+              </div>
+              <button
+                :if={index < length(@children) - 1}
+                type="button"
+                class="live-ui-split-pane__handle"
+                aria-label="Resize pane"
+                data-pane-index={index}
+                {Helpers.hook_event_attrs("resize", @descriptor, @split_binding, %{
+                  "orientation" => split_orientation(@props),
+                  "pane_index" => index,
+                  "sizes" => split_sizes(@props, @children)
+                })}
+              >
+                <span aria-hidden="true">|</span>
+              </button>
             <% end %>
           <% _ -> %>
             <%= for child <- @children do %>
@@ -93,10 +132,9 @@ defmodule LiveUi.Components.Layouts do
   defp direction_for(_kind), do: nil
 
   defp split_value(props) do
-    case Map.get(props, "initial_split") do
-      value when is_integer(value) -> "#{value}%"
-      value when is_binary(value) -> value
-      _ -> nil
+    case split_sizes(props, []) do
+      [first | _rest] -> "#{first}%"
+      _other -> nil
     end
   end
 
@@ -141,6 +179,68 @@ defmodule LiveUi.Components.Layouts do
   defp px(value) when is_integer(value), do: "#{value}px"
   defp px(value) when is_binary(value), do: value
   defp px(_value), do: nil
+
+  defp split_pane_style(props, children, index) do
+    case Enum.at(split_sizes(props, children), index) do
+      nil -> nil
+      size -> "flex: 0 0 #{size}%"
+    end
+  end
+
+  defp split_sizes(props, children) do
+    case normalize_sizes(Map.get(props, "sizes")) do
+      sizes when length(sizes) == length(children) and sizes != [] ->
+        sizes
+
+      _other ->
+        fallback_split_sizes(props, children)
+    end
+  end
+
+  defp fallback_split_sizes(props, children) do
+    case {length(children), normalize_size(Map.get(props, "initial_split"))} do
+      {2, split} when is_integer(split) and split > 0 and split < 100 ->
+        [split, 100 - split]
+
+      {count, _split} when count > 0 ->
+        base = div(100, count)
+        remainder = rem(100, count)
+
+        Enum.map(0..(count - 1), fn index ->
+          if index < remainder, do: base + 1, else: base
+        end)
+
+      _other ->
+        []
+    end
+  end
+
+  defp normalize_sizes(sizes) when is_list(sizes) do
+    sizes
+    |> Enum.map(&normalize_size/1)
+    |> Enum.reject(&is_nil/1)
+  end
+
+  defp normalize_sizes(_sizes), do: []
+
+  defp normalize_size(value) when is_integer(value), do: value
+
+  defp normalize_size(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {integer, ""} -> integer
+      _other -> nil
+    end
+  end
+
+  defp normalize_size(_value), do: nil
+
+  defp split_orientation(props) do
+    case Map.get(props, "orientation", "horizontal") do
+      value when value in ["horizontal", "vertical"] -> value
+      value when value in [:horizontal, :vertical] -> Atom.to_string(value)
+      _other -> "horizontal"
+    end
+  end
 
   defp css_value(nil), do: nil
   defp css_value(value) when is_boolean(value), do: if(value, do: "true", else: "false")

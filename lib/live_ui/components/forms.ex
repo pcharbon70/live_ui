@@ -28,7 +28,13 @@ defmodule LiveUi.Components.Forms do
         :pick_list_attrs,
         Helpers.event_attrs("change", descriptor, pick_list_binding(descriptor))
       )
-      |> assign(:form_attrs, Helpers.event_attrs("submit", descriptor, form_binding(descriptor)))
+      |> assign(
+        :form_attrs,
+        Helpers.merge_attrs([
+          Helpers.event_attrs("change", descriptor, form_change_binding(descriptor)),
+          Helpers.event_attrs("submit", descriptor, form_binding(descriptor))
+        ])
+      )
       |> assign(:row_select_binding, Helpers.binding(descriptor, "on_row_select"))
       |> assign(:sort_binding, Helpers.binding(descriptor, "on_sort"))
 
@@ -39,7 +45,7 @@ defmodule LiveUi.Components.Forms do
           <option value={Map.get(@props, "value")} selected={selected?(@props)}><%= Map.get(@props, "label", Map.get(@props, "value")) %></option>
         <% "pick_list" -> %>
           <div id={@id} class={@classes} style={@style}>
-            <select {@pick_list_attrs}>
+            <select id={@id <> "-select"} name={@id} {@pick_list_attrs}>
               <option :if={Map.get(@props, "placeholder")} value=""><%= Map.get(@props, "placeholder") %></option>
               <%= for child <- @children do %><LiveUi.WidgetRegistry.render descriptor={child} /><% end %>
             </select>
@@ -88,7 +94,10 @@ defmodule LiveUi.Components.Forms do
                     nil,
                     @descriptor,
                     @row_select_binding,
-                    %{"row_index" => index}
+                    %{
+                      "row_id" => table_row_id(row, index),
+                      "row_index" => index
+                    }
                   ) %>
                 <tr {row_attrs}>
                   <%= for column <- table_columns(@props) do %>
@@ -106,6 +115,7 @@ defmodule LiveUi.Components.Forms do
   defp selected?(props), do: Helpers.truthy?(Map.get(props, "selected", false))
 
   defp pick_list_binding(descriptor), do: Helpers.binding(descriptor, "on_select")
+  defp form_change_binding(descriptor), do: Helpers.binding(descriptor, "on_change")
   defp form_binding(descriptor), do: Helpers.binding(descriptor, ["on_submit", "action"])
 
   defp table_rows(props), do: Map.get(props, "data", [])
@@ -122,6 +132,12 @@ defmodule LiveUi.Components.Forms do
   end
 
   defp table_cell(row, _column), do: inspect(row)
+
+  defp table_row_id(%{} = row, index) do
+    Map.get(row, "id", Map.get(row, :id, index))
+  end
+
+  defp table_row_id(_row, index), do: index
 
   defp field_input(props) do
     type = Map.get(props, "field_type", Map.get(props, "type", "text"))
