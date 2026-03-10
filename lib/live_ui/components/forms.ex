@@ -63,7 +63,14 @@ defmodule LiveUi.Components.Forms do
         <% "column" -> %>
           <span id={@id} class={@classes}><%= Map.get(@props, "header", Map.get(@props, "key", "column")) %></span>
         <% "table" -> %>
-          <table id={@id} class={@classes} style={@style}>
+          <table
+            id={@id}
+            class={@classes}
+            style={@style}
+            data-sort-column={Map.get(@props, "sort_column")}
+            data-sort-direction={Map.get(@props, "sort_direction")}
+            data-selected-row-id={Map.get(@props, "selected_row_id")}
+          >
             <thead>
               <tr>
                 <%= for column <- table_columns(@props) do %>
@@ -76,7 +83,13 @@ defmodule LiveUi.Components.Forms do
                       %{"sort_column" => Map.get(column, "key")}
                     ) %>
                   <th>
-                    <button :if={@sort_binding} type="button" {sort_attrs}>
+                    <button
+                      :if={@sort_binding}
+                      type="button"
+                      class={["live-ui-table__sort", if(sorted_column?(@props, column), do: "is-sorted")]}
+                      data-sort-direction={sort_direction(@props, column)}
+                      {sort_attrs}
+                    >
                       <%= Map.get(column, "header", Map.get(column, "key", "")) %>
                     </button>
                     <span :if={is_nil(@sort_binding)}>
@@ -99,7 +112,7 @@ defmodule LiveUi.Components.Forms do
                       "row_index" => index
                     }
                   ) %>
-                <tr {row_attrs}>
+                <tr class={["live-ui-table__row", if(selected_row?(@props, row, index), do: "is-selected")]} {row_attrs}>
                   <%= for column <- table_columns(@props) do %>
                     <td><%= table_cell(row, column) %></td>
                   <% end %>
@@ -138,6 +151,26 @@ defmodule LiveUi.Components.Forms do
   end
 
   defp table_row_id(_row, index), do: index
+
+  defp selected_row?(props, row, index) do
+    selected_row_id = Map.get(props, "selected_row_id")
+    selected_row_index = Map.get(props, "selected_row_index")
+    row_id = table_row_id(row, index)
+
+    (not is_nil(selected_row_id) and
+       Helpers.scalar_string(row_id) == Helpers.scalar_string(selected_row_id)) or
+      (not is_nil(selected_row_index) and
+         Helpers.scalar_string(index) == Helpers.scalar_string(selected_row_index))
+  end
+
+  defp sorted_column?(props, column) do
+    Helpers.scalar_string(Map.get(props, "sort_column")) ==
+      Helpers.scalar_string(Map.get(column, "key"))
+  end
+
+  defp sort_direction(props, column) do
+    if sorted_column?(props, column), do: Map.get(props, "sort_direction"), else: nil
+  end
 
   defp field_input(props) do
     type = Map.get(props, "field_type", Map.get(props, "type", "text"))

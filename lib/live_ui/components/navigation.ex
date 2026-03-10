@@ -105,6 +105,8 @@ defmodule LiveUi.Components.Navigation do
           <li id={@id} class={@classes}>
             <button
               type="button"
+              class={["live-ui-tree__node", if(Helpers.truthy?(Map.get(@props, "selected", false)), do: "is-selected")]}
+              aria-expanded={if(Helpers.truthy?(Map.get(@props, "expanded", false)), do: "true", else: "false")}
               {Helpers.event_attrs(
                 "click",
                 nil,
@@ -127,7 +129,14 @@ defmodule LiveUi.Components.Navigation do
         <% "command" -> %>
           <button id={@id} type="button" class={@classes} {@command_attrs}><%= Map.get(@props, "label", "Command") %></button>
         <% "command_palette" -> %>
-          <section id={@id} class={@classes} style={@style} data-live-ui-hook={@hook} {@palette_hook_attrs}>
+          <section
+            id={@id}
+            class={[@classes, if(Helpers.truthy?(Map.get(@props, "open", true)), do: "is-open", else: "is-closed")]}
+            style={@style}
+            data-live-ui-hook={@hook}
+            data-open={if(Helpers.truthy?(Map.get(@props, "open", true)), do: "true", else: "false")}
+            {@palette_hook_attrs}
+          >
             <form class="live-ui-command-palette__form" {@palette_form_attrs}>
               <input
                 type="search"

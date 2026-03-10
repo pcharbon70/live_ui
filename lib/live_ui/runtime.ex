@@ -66,7 +66,7 @@ defmodule LiveUi.Runtime do
   @spec handle_event(Model.t(), String.t() | atom(), map()) ::
           {:ok, Model.t()} | {:error, Exception.t()}
   def handle_event(%Model{} = model, event_name, payload) when is_map(payload) do
-    incoming_widget_state = WidgetState.extract(payload)
+    incoming_widget_state = WidgetState.extract(event_name, payload)
     widget_state = WidgetState.merge(model.widget_state || %{}, incoming_widget_state)
 
     with {:ok, signal} <- EventRouter.normalize(event_name, payload, model.runtime_context),

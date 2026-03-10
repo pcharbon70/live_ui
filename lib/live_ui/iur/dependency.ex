@@ -14,7 +14,7 @@ defmodule LiveUi.IUR.Dependency do
       Enum.reduce(@marker_keys, %{}, fn key, acc -> Map.put(acc, key, fetch(payload, key)) end)
 
     cond do
-      Enum.all?(@marker_keys, &blank?(markers[&1])) ->
+      not schema_markers_present?(markers) ->
         :ok
 
       Enum.any?(@marker_keys, &blank?(markers[&1])) ->
@@ -38,7 +38,9 @@ defmodule LiveUi.IUR.Dependency do
 
   @spec markers_present?(map()) :: boolean()
   def markers_present?(payload) when is_map(payload) do
-    Enum.any?(@marker_keys, fn key -> not blank?(fetch(payload, key)) end)
+    payload
+    |> Enum.reduce(%{}, fn {key, value}, acc -> Map.put(acc, to_string(key), value) end)
+    |> schema_markers_present?()
   end
 
   def markers_present?(_payload), do: false
@@ -47,4 +49,8 @@ defmodule LiveUi.IUR.Dependency do
   defp fetch(map, "source"), do: Map.get(map, "source", Map.get(map, :source))
   defp fetch(map, "version"), do: Map.get(map, "version", Map.get(map, :version))
   defp blank?(value), do: not (is_binary(value) and String.trim(value) != "")
+
+  defp schema_markers_present?(markers) when is_map(markers) do
+    not blank?(Map.get(markers, "schema")) or not blank?(Map.get(markers, "version"))
+  end
 end
