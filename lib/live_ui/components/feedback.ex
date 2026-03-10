@@ -28,12 +28,24 @@ defmodule LiveUi.Components.Feedback do
         Helpers.classes(descriptor, ["live-ui-feedback", "live-ui-feedback--#{kind}"])
       )
       |> assign(:style, Helpers.inline_style(descriptor))
+      |> assign(
+        :dialog_button_attrs,
+        Helpers.event_attrs("click", descriptor, button_binding(descriptor))
+      )
+      |> assign(
+        :confirm_attrs,
+        Helpers.event_attrs("click", descriptor, Helpers.binding(descriptor, "on_confirm"))
+      )
+      |> assign(
+        :cancel_attrs,
+        Helpers.event_attrs("click", descriptor, Helpers.binding(descriptor, "on_cancel"))
+      )
 
     ~H"""
     <%= if Helpers.visible?(@descriptor) do %>
       <%= case @kind do %>
         <% "dialog_button" -> %>
-          <button id={@id} type="button" class={@classes} phx-click="click" phx-value-widget_id={@id} phx-value-widget_kind={@kind} phx-value-intent={button_intent(@descriptor)}>
+          <button id={@id} type="button" class={@classes} {@dialog_button_attrs}>
             <%= Map.get(@props, "label", "Action") %>
           </button>
         <% "dialog" -> %>
@@ -47,8 +59,8 @@ defmodule LiveUi.Components.Feedback do
             <header><h2><%= Map.get(@props, "title", "Alert") %></h2></header>
             <p><%= Map.get(@props, "message", "") %></p>
             <div class="live-ui-alert__actions">
-              <button type="button" phx-click="click" phx-value-widget_id={@id} phx-value-widget_kind={@kind} phx-value-intent={alert_intent(@descriptor, "on_confirm", "confirm")}>Confirm</button>
-              <button type="button" phx-click="click" phx-value-widget_id={@id} phx-value-widget_kind={@kind} phx-value-intent={alert_intent(@descriptor, "on_cancel", "cancel")}>Cancel</button>
+              <button type="button" {@confirm_attrs}>Confirm</button>
+              <button type="button" {@cancel_attrs}>Cancel</button>
             </div>
           </aside>
         <% "toast" -> %>
@@ -60,9 +72,5 @@ defmodule LiveUi.Components.Feedback do
     """
   end
 
-  defp button_intent(descriptor),
-    do: descriptor |> Helpers.binding("action") |> Helpers.intent("activate")
-
-  defp alert_intent(descriptor, field, default),
-    do: descriptor |> Helpers.binding(field) |> Helpers.intent(default)
+  defp button_binding(descriptor), do: Helpers.binding(descriptor, "action")
 end

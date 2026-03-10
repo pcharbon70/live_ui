@@ -25,13 +25,17 @@ defmodule LiveUi.Components.Navigation do
       )
       |> assign(:style, Helpers.inline_style(descriptor))
       |> assign(:hook, Helpers.hook_name(descriptor))
+      |> assign(
+        :menu_item_attrs,
+        Helpers.event_attrs("click", descriptor, action_binding(descriptor))
+      )
 
     ~H"""
     <%= if Helpers.visible?(@descriptor) do %>
       <%= case @kind do %>
         <% "menu_item" -> %>
           <li id={@id} class={@classes}>
-            <button type="button" phx-click="click" phx-value-widget_id={@id} phx-value-widget_kind={@kind} phx-value-intent={action_intent(@descriptor)} disabled={Helpers.truthy?(Map.get(@props, "disabled", false))}>
+            <button type="button" disabled={Helpers.truthy?(Map.get(@props, "disabled", false))} {@menu_item_attrs}>
               <%= Map.get(@props, "label", "Item") %>
             </button>
             <%= if @children != [] do %>
@@ -48,14 +52,18 @@ defmodule LiveUi.Components.Navigation do
           <section id={@id} class={@classes} style={@style}>
             <div class="live-ui-tabs__bar">
               <%= for tab <- @children do %>
+                <% tab_attrs =
+                  Helpers.event_attrs(
+                    "click",
+                    nil,
+                    @descriptor,
+                    Helpers.binding(@descriptor, "on_change"),
+                    %{"tab_id" => Helpers.id(tab)}
+                  ) %>
                 <button
                   type="button"
                   class={["live-ui-tabs__tab", if(Helpers.id(tab) == active_tab(@props, @children), do: "is-active")]}
-                  phx-click="click"
-                  phx-value-widget_id={@id}
-                  phx-value-widget_kind={@kind}
-                  phx-value-intent={tabs_intent(@descriptor)}
-                  phx-value-tab_id={Helpers.id(tab)}
+                  {tab_attrs}
                 >
                   <%= Map.get(Helpers.props(tab), "label", Helpers.id(tab)) %>
                 </button>
@@ -102,11 +110,7 @@ defmodule LiveUi.Components.Navigation do
     Enum.find(children, fn child -> Helpers.id(child) == active_id end)
   end
 
-  defp action_intent(descriptor),
-    do: descriptor |> Helpers.binding(["action", "on_select"]) |> Helpers.intent("activate")
-
-  defp tabs_intent(descriptor),
-    do: descriptor |> Helpers.binding("on_change") |> Helpers.intent("change")
+  defp action_binding(descriptor), do: Helpers.binding(descriptor, ["action", "on_select"])
 
   defp tree_intent(descriptor),
     do: descriptor |> Helpers.binding(["on_select", "on_toggle"]) |> Helpers.intent("select")

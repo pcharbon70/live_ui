@@ -24,6 +24,13 @@ defmodule LiveUi.Components.Forms do
         Helpers.classes(descriptor, ["live-ui-forms", "live-ui-forms--#{kind}"])
       )
       |> assign(:style, Helpers.inline_style(descriptor))
+      |> assign(
+        :pick_list_attrs,
+        Helpers.event_attrs("change", descriptor, pick_list_binding(descriptor))
+      )
+      |> assign(:form_attrs, Helpers.event_attrs("submit", descriptor, form_binding(descriptor)))
+      |> assign(:row_select_binding, Helpers.binding(descriptor, "on_row_select"))
+      |> assign(:sort_binding, Helpers.binding(descriptor, "on_sort"))
 
     ~H"""
     <%= if Helpers.visible?(@descriptor) do %>
@@ -32,7 +39,7 @@ defmodule LiveUi.Components.Forms do
           <option value={Map.get(@props, "value")} selected={selected?(@props)}><%= Map.get(@props, "label", Map.get(@props, "value")) %></option>
         <% "pick_list" -> %>
           <div id={@id} class={@classes} style={@style}>
-            <select phx-change="change" phx-value-widget_id={@id} phx-value-widget_kind={@kind} phx-value-intent={pick_list_intent(@descriptor)}>
+            <select {@pick_list_attrs}>
               <option :if={Map.get(@props, "placeholder")} value=""><%= Map.get(@props, "placeholder") %></option>
               <%= for child <- @children do %><LiveUi.WidgetRegistry.render descriptor={child} /><% end %>
             </select>
@@ -43,7 +50,7 @@ defmodule LiveUi.Components.Forms do
             <%= field_input(@props) %>
           </div>
         <% "form_builder" -> %>
-          <form id={@id} class={@classes} style={@style} phx-submit="submit" phx-value-widget_id={@id} phx-value-widget_kind={@kind} phx-value-intent={form_intent(@descriptor)}>
+          <form id={@id} class={@classes} style={@style} {@form_attrs}>
             <%= for child <- @children do %><LiveUi.WidgetRegistry.render descriptor={child} /><% end %>
             <button type="submit"><%= Map.get(@props, "submit_label", "Submit") %></button>
           </form>
@@ -54,13 +61,36 @@ defmodule LiveUi.Components.Forms do
             <thead>
               <tr>
                 <%= for column <- table_columns(@props) do %>
-                  <th><%= Map.get(column, "header", Map.get(column, "key", "")) %></th>
+                  <% sort_attrs =
+                    Helpers.event_attrs(
+                      "click",
+                      nil,
+                      @descriptor,
+                      @sort_binding,
+                      %{"sort_column" => Map.get(column, "key")}
+                    ) %>
+                  <th>
+                    <button :if={@sort_binding} type="button" {sort_attrs}>
+                      <%= Map.get(column, "header", Map.get(column, "key", "")) %>
+                    </button>
+                    <span :if={is_nil(@sort_binding)}>
+                      <%= Map.get(column, "header", Map.get(column, "key", "")) %>
+                    </span>
+                  </th>
                 <% end %>
               </tr>
             </thead>
             <tbody>
               <%= for {row, index} <- Enum.with_index(table_rows(@props)) do %>
-                <tr phx-click="click" phx-value-widget_id={@id} phx-value-widget_kind={@kind} phx-value-intent={table_intent(@descriptor, "on_row_select", "select")} phx-value-row_index={index}>
+                <% row_attrs =
+                  Helpers.event_attrs(
+                    "click",
+                    nil,
+                    @descriptor,
+                    @row_select_binding,
+                    %{"row_index" => index}
+                  ) %>
+                <tr {row_attrs}>
                   <%= for column <- table_columns(@props) do %>
                     <td><%= table_cell(row, column) %></td>
                   <% end %>
@@ -75,14 +105,8 @@ defmodule LiveUi.Components.Forms do
 
   defp selected?(props), do: Helpers.truthy?(Map.get(props, "selected", false))
 
-  defp pick_list_intent(descriptor),
-    do: descriptor |> Helpers.binding("on_select") |> Helpers.intent("select")
-
-  defp form_intent(descriptor),
-    do: descriptor |> Helpers.binding(["on_submit", "action"]) |> Helpers.intent("submit")
-
-  defp table_intent(descriptor, field, default),
-    do: descriptor |> Helpers.binding(field) |> Helpers.intent(default)
+  defp pick_list_binding(descriptor), do: Helpers.binding(descriptor, "on_select")
+  defp form_binding(descriptor), do: Helpers.binding(descriptor, ["on_submit", "action"])
 
   defp table_rows(props), do: Map.get(props, "data", [])
   defp table_columns(props), do: Enum.map(Map.get(props, "columns", []), &normalize_column/1)

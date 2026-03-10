@@ -41,12 +41,12 @@ defmodule LiveUi.Signals.Encoder do
   defp normalize_signal(event_name, payload, runtime_context) do
     widget_id = required_payload_value(payload, :widget_id)
     widget_kind = required_payload_value(payload, :widget_kind)
-    intent = optional_payload_value(payload, :intent, normalize_event_name(event_name))
+    intent = event_scoped_value(payload, event_name, :intent, normalize_event_name(event_name))
 
     signal_attrs = %{
       data: %{
         intent: intent,
-        payload: signal_payload(payload),
+        payload: signal_payload(payload, event_name),
         runtime_context: runtime_context,
         widget_id: widget_id,
         widget_kind: widget_kind
@@ -107,11 +107,69 @@ defmodule LiveUi.Signals.Encoder do
     Map.get(payload, Atom.to_string(key), Map.get(payload, key, default))
   end
 
-  defp signal_payload(payload) do
-    payload
-    |> Map.drop(["intent", "signal", "widget_id", "widget_kind"])
-    |> Map.drop([:intent, :signal, :widget_id, :widget_kind])
+  defp event_scoped_value(payload, event_name, key, default) do
+    event_name = normalize_event_name(event_name)
+    scoped_key = "event_#{event_name}_#{Atom.to_string(key)}"
+
+    Map.get(
+      payload,
+      scoped_key,
+      Map.get(payload, String.to_atom(scoped_key), optional_payload_value(payload, key, default))
+    )
   end
+
+  defp signal_payload(payload, event_name) do
+    event_name = normalize_event_name(event_name)
+
+    payload
+    |> Enum.reduce(%{}, fn {key, value}, acc ->
+      put_signal_payload(acc, normalize_payload_key(key), value, event_name)
+    end)
+  end
+
+  defp put_signal_payload(acc, key, value, event_name) do
+    if key in ["intent", "signal", "widget_id", "widget_kind", "event_#{event_name}_intent"] do
+      acc
+    else
+      do_put_signal_payload(acc, key, value, event_name)
+    end
+  end
+
+  defp do_put_signal_payload(acc, <<"event_", rest::binary>>, value, event_name) do
+    event_prefix = "#{event_name}_"
+    json_event_prefix = "#{event_prefix}json_"
+
+    cond do
+      String.starts_with?(rest, json_event_prefix) ->
+        stripped_key = String.replace_prefix(rest, json_event_prefix, "")
+        Map.put(acc, stripped_key, decode_json(value))
+
+      String.starts_with?(rest, event_prefix) ->
+        stripped_key = String.replace_prefix(rest, event_prefix, "")
+        Map.put(acc, stripped_key, value)
+
+      true ->
+        acc
+    end
+  end
+
+  defp do_put_signal_payload(acc, <<"json_", key::binary>>, value, _event_name),
+    do: Map.put(acc, key, decode_json(value))
+
+  defp do_put_signal_payload(acc, key, value, _event_name), do: Map.put(acc, key, value)
+
+  defp normalize_payload_key(key) when is_binary(key), do: key
+  defp normalize_payload_key(key) when is_atom(key), do: Atom.to_string(key)
+  defp normalize_payload_key(key), do: to_string(key)
+
+  defp decode_json(value) when is_binary(value) do
+    case Jason.decode(value) do
+      {:ok, decoded} -> decoded
+      {:error, _reason} -> value
+    end
+  end
+
+  defp decode_json(value), do: value
 
   defp signal_source(runtime_context) do
     runtime_context

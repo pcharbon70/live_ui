@@ -32,6 +32,27 @@ defmodule LiveUi.Signals.EncoderTest do
     assert signal.type == "live_ui.text_input.change"
   end
 
+  test "decodes scoped attrs for multi-event elements without leaking other event scopes" do
+    assert {:ok, signal} =
+             Encoder.encode("submit", %{
+               "widget_id" => "name",
+               "widget_kind" => "text_input",
+               "value" => "Pascal",
+               "event_change_intent" => "update_name",
+               "event_submit_intent" => "commit_name",
+               "event_submit_source" => "blur",
+               "event_submit_json_meta" => Jason.encode!(%{"reason" => "enter"})
+             })
+
+    assert signal.type == "live_ui.text_input.commit_name"
+
+    assert signal.data.payload == %{
+             "meta" => %{"reason" => "enter"},
+             "source" => "blur",
+             "value" => "Pascal"
+           }
+  end
+
   test "preserves stable payloads for hook-driven advanced widgets" do
     assert {:ok, signal} =
              Encoder.encode("resize", %{
