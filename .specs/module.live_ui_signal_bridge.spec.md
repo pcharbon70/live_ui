@@ -13,7 +13,42 @@ This subject is also responsible for rejecting malformed or unauthorized event p
   "relationships": [
     {"kind": "depends_on", "target": "package.live_ui"},
     {"kind": "depends_on", "target": "module.live_ui_iur_interpreter"},
-    {"kind": "depends_on", "target": "module.live_ui_runtime"}
+    {"kind": "depends_on", "target": "module.live_ui_runtime"},
+    {"kind": "governed_by", "target": "policy.live_ui_governance"},
+    {"kind": "governed_by", "target": "policy.live_ui_conformance"}
+  ]
+}
+```
+
+```spec-governance
+{
+  "owner": "team.live_ui",
+  "criticality": "high",
+  "primary_plane": "execution",
+  "change_rules": [
+    {
+      "id": "signal_bridge_changes_require_runtime_alignment",
+      "when": {
+        "change_types": ["behavior_shape"]
+      },
+      "requires": [
+        {"subject_ids": ["module.live_ui_runtime", "module.live_ui_iur_interpreter"]},
+        {"verification_kinds": ["test_file"]}
+      ],
+      "severity": "error"
+    }
+  ],
+  "approval": {
+    "required": true,
+    "roles": ["maintainer"]
+  },
+  "gates": [
+    {
+      "id": "local_spec_check",
+      "kind": "mix_task",
+      "target": "mix spec.check",
+      "mode": "required"
+    }
   ]
 }
 ```

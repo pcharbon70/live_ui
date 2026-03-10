@@ -22,6 +22,7 @@ defmodule LiveUi.MixProject do
 
   defp deps do
     [
+      {:jason, "~> 1.4"},
       {:jido_signal, "~> 1.0"},
       {:phoenix_live_view, "~> 1.0"},
       {:ex_doc, "~> 0.38", only: :dev, runtime: false}
@@ -37,7 +38,7 @@ defmodule LiveUi.MixProject do
   defp docs do
     [
       main: "readme",
-      extras: ["README.md", "docs/architecture.md"]
+      extras: ["README.md", "docs/architecture.md", "docs/spec-governance.md"]
     ]
   end
 

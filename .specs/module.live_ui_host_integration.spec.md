@@ -12,9 +12,44 @@ This subject is the public library boundary for routing, session/context propaga
   "surface": ["LiveUi", "LiveUi.Router", "LiveUi.Assets", "LiveUi.Session"],
   "relationships": [
     {"kind": "depends_on", "target": "package.live_ui"},
+    {"kind": "governed_by", "target": "policy.live_ui_governance"},
+    {"kind": "governed_by", "target": "policy.live_ui_conformance"},
     {"kind": "relates_to", "target": "module.live_ui_screen_macro"},
     {"kind": "relates_to", "target": "module.live_ui_runtime"},
     {"kind": "relates_to", "target": "module.live_ui_signal_bridge"}
+  ]
+}
+```
+
+```spec-governance
+{
+  "owner": "team.live_ui",
+  "criticality": "high",
+  "primary_plane": "integration",
+  "change_rules": [
+    {
+      "id": "host_integration_changes_require_runtime_and_docs_alignment",
+      "when": {
+        "change_types": ["behavior_shape"]
+      },
+      "requires": [
+        {"artifacts": ["docs/architecture.md"]},
+        {"subject_ids": ["module.live_ui_runtime"]}
+      ],
+      "severity": "error"
+    }
+  ],
+  "approval": {
+    "required": true,
+    "roles": ["maintainer"]
+  },
+  "gates": [
+    {
+      "id": "local_spec_check",
+      "kind": "mix_task",
+      "target": "mix spec.check",
+      "mode": "required"
+    }
   ]
 }
 ```
