@@ -61,7 +61,7 @@ defmodule LiveUi.Host.EntrypointParityTest do
     assert dynamic_model.source.kind == :iur
     assert dynamic_model.screen_state == %{}
     assert dynamic_model.status == :ready
-    assert dynamic_model.descriptor_tree.id == "raw-counter-root"
+    assert dynamic_model.descriptor_tree.id == "counter-root"
     assert Map.keys(Map.from_struct(wrapper_model)) == Map.keys(Map.from_struct(dynamic_model))
   end
 

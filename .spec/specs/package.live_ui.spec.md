@@ -180,6 +180,15 @@ The package also needs an explicit compatibility story for the current gap betwe
     ]
   },
   {
+    "kind": "test_file",
+    "target": "test/live_ui/architecture/golden_parity_test.exs",
+    "covers": [
+      "live_ui.input.dual_pipeline",
+      "live_ui.render.normalization_boundary",
+      "live_ui.widget.catalog.parity"
+    ]
+  },
+  {
     "kind": "command",
     "target": "mix test test/live_ui/**/*_test.exs",
     "covers": [

@@ -55,7 +55,7 @@ defmodule LiveUi.Host.RouterIntegrationTest do
 
     assert mounted_socket.assigns.page_title == "vbox"
     assert mounted_socket.assigns.live_ui_model.source.kind == :iur
-    assert mounted_socket.assigns.live_ui_model.descriptor_tree.id == "raw-counter-root"
+    assert mounted_socket.assigns.live_ui_model.descriptor_tree.id == "counter-root"
     assert mounted_socket.assigns.live_ui_model.runtime_context.view == DynamicLive
     assert mounted_socket.assigns.live_ui_model.runtime_context.trace_id == "raw-iur-1"
   end

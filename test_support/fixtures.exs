@@ -71,18 +71,27 @@ end
 defmodule LiveUi.TestSupport.RawIur do
   @moduledoc false
 
-  def counter_tree(count \\ 1) do
+  def counter_tree(count \\ 1, opts \\ []) do
     %{
       "schema" => "unified_iur",
       "source" => "live_ui_test",
       "version" => "1.0.0",
-      "id" => "raw-counter-root",
+      "id" => "counter-root",
       "kind" => "vbox",
       "spacing" => 2,
+      "meta" => %{
+        "initialized?" => true,
+        "mount_token" => Keyword.get(opts, :mount_token)
+      },
       "children" => [
-        %{"id" => "raw-counter-label", "kind" => "text", "content" => "Count: #{count}"},
         %{
-          "id" => "raw-counter-button",
+          "id" => "counter-label",
+          "kind" => "text",
+          "content" => "Count: #{count}",
+          "style" => %{"class" => "counter-value"}
+        },
+        %{
+          "id" => "increment-button",
           "kind" => "button",
           "label" => "Increment",
           "on_click" => %{"intent" => "activate", "payload" => %{"delta" => 1}}
