@@ -1,6 +1,6 @@
 # LiveUi Signal Bridge
 
-The signal bridge subject turns LiveView events into UnifiedUi or Jido-compatible signals and keeps client payload normalization out of the screen modules.
+The signal bridge subject turns LiveView events into concrete `%Jido.Signal{}` values and keeps client payload normalization out of the screen modules.
 
 This subject is also responsible for rejecting malformed or unauthorized event payloads before they become runtime signals.
 
@@ -24,7 +24,7 @@ This subject is also responsible for rejecting malformed or unauthorized event p
 [
   {
     "id": "live_ui_signals.liveview.events.normalize_to_unified",
-    "statement": "When a LiveView event is accepted from a rendered widget, the signal bridge shall normalize the event into a UnifiedUi or Jido-compatible signal containing widget identity, widget kind, and event intent.",
+    "statement": "When a LiveView event is accepted from a rendered widget, the signal bridge shall normalize the event into a concrete `%Jido.Signal{}` containing widget identity, widget kind, and event intent.",
     "priority": "must",
     "stability": "stable"
   },
@@ -36,7 +36,7 @@ This subject is also responsible for rejecting malformed or unauthorized event p
   },
   {
     "id": "live_ui_signals.advanced_widgets.emit_stable_payloads",
-    "statement": "When advanced widgets such as table, tabs, tree_view, pick_list, viewport, split_pane, command_palette, dialog, toast, or canvas emit events, the signal bridge shall normalize those events into stable payload shapes that do not leak raw browser event structure.",
+    "statement": "When advanced widgets such as table, tabs, tree_view, pick_list, viewport, split_pane, command_palette, dialog, toast, or canvas emit events, the signal bridge shall normalize those events into stable `%Jido.Signal{}` payload shapes that do not leak raw browser event structure.",
     "priority": "must",
     "stability": "stable"
   },
@@ -63,7 +63,7 @@ This subject is also responsible for rejecting malformed or unauthorized event p
     "id": "live_ui_signals.button_click_roundtrip",
     "given": ["a rendered button descriptor with a click binding"],
     "when": ["the browser emits a phx-click event"],
-    "then": ["the event is normalized into a UnifiedUi-compatible click signal and delivered to the runtime"],
+    "then": ["the event is normalized into a concrete `%Jido.Signal{}` click signal and delivered to the runtime"],
     "covers": ["live_ui_signals.liveview.events.normalize_to_unified"]
   },
   {
@@ -77,7 +77,7 @@ This subject is also responsible for rejecting malformed or unauthorized event p
     "id": "live_ui_signals.stateful_widget_payload",
     "given": ["a rendered table, tabs, tree_view, pick_list, viewport, split_pane, command_palette, dialog, toast, or canvas widget"],
     "when": ["the widget emits an interaction event"],
-    "then": ["the event payload is normalized into a stable UnifiedUi-compatible shape without leaking raw browser event structure"],
+    "then": ["the event payload is normalized into a stable `%Jido.Signal{}` data shape without leaking raw browser event structure"],
     "covers": ["live_ui_signals.advanced_widgets.emit_stable_payloads"]
   },
   {

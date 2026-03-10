@@ -37,7 +37,7 @@ This subject should remain deterministic. Client events may enrich the runtime w
   },
   {
     "id": "live_ui_runtime.update.atomic_rebuild",
-    "statement": "When an accepted signal is processed, the runtime shall apply screen updates, rebuild the source IUR, reinterpret the descriptor tree, and assign the new view state atomically.",
+    "statement": "When an accepted `%Jido.Signal{}` is processed, the runtime shall apply screen updates, rebuild the source IUR, reinterpret the descriptor tree, and assign the new view state atomically.",
     "priority": "must",
     "stability": "stable"
   },
@@ -77,7 +77,7 @@ This subject should remain deterministic. Client events may enrich the runtime w
   {
     "id": "live_ui_runtime.processes_click_signal",
     "given": ["a mounted screen with a clickable widget"],
-    "when": ["a click event is accepted and encoded as a signal"],
+    "when": ["a click event is accepted and encoded as a concrete `%Jido.Signal{}`"],
     "then": ["the runtime updates screen state and publishes one atomically rebuilt descriptor tree"],
     "covers": ["live_ui_runtime.update.atomic_rebuild", "live_ui_runtime.widget_state.server_authority"]
   },

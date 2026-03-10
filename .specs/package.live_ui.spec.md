@@ -61,7 +61,7 @@ The package also needs an explicit compatibility story for the current gap betwe
   },
   {
     "id": "live_ui.event.loop.rebuild",
-    "statement": "When a user interaction is accepted, the package shall encode the interaction as a UnifiedUi-compatible signal, rebuild the interpreted tree, and rely on LiveView diffing for DOM reconciliation.",
+    "statement": "When a user interaction is accepted, the package shall encode the interaction as a concrete `%Jido.Signal{}`, rebuild the interpreted tree, and rely on LiveView diffing for DOM reconciliation.",
     "priority": "must",
     "stability": "stable"
   },
