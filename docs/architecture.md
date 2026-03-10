@@ -121,7 +121,7 @@ The host Phoenix application should be responsible for:
 ### Event and signal bridge
 
 - `LiveUi.Signals.Encoder`
-  - Converts LiveView events into stable UnifiedUi/Jido-compatible signal payloads.
+  - Converts LiveView events into concrete `%Jido.Signal{}` values with stable `data` payloads.
 - `LiveUi.Live.EventRouter`
   - Extracts descriptor metadata from `phx-value-*` payloads.
   - Accepts hook-originated payloads through the same normalization boundary.
@@ -147,7 +147,7 @@ The host Phoenix application should be responsible for:
 5. `LiveUi.IUR.Interpreter` normalizes the IUR into descriptor nodes and signal bindings.
 6. `LiveUi.WidgetRegistry` resolves each descriptor node to a renderer component.
 7. The shared engine emits HEEx from the descriptor tree.
-8. User events are encoded back into UnifiedUi/Jido signals and routed to `update/2`.
+8. User events are encoded back into concrete `%Jido.Signal{}` values and routed to `update/2`.
 9. The runtime rebuilds the tree and lets LiveView diff the DOM.
 
 ### Canonical IUR path

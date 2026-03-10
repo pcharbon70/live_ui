@@ -22,6 +22,7 @@ defmodule LiveUi.MixProject do
 
   defp deps do
     [
+      {:jido_signal, "~> 1.0"},
       {:phoenix_live_view, "~> 1.0"},
       {:ex_doc, "~> 0.38", only: :dev, runtime: false}
     ]

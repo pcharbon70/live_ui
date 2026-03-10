@@ -3,6 +3,7 @@ defmodule LiveUi.Runtime.Model do
   Shared runtime state owned by the internal LiveView engine.
   """
 
+  alias Jido.Signal
   alias LiveUi.Source
 
   @type status :: :initializing | :ready | :error
@@ -24,7 +25,7 @@ defmodule LiveUi.Runtime.Model do
           error: Exception.t() | nil,
           iur_tree: term(),
           last_event: map() | nil,
-          last_signal: map() | nil,
+          last_signal: Signal.t() | nil,
           runtime_context: map(),
           screen_state: map() | nil,
           source: Source.t(),
