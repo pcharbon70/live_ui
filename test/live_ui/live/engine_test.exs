@@ -9,6 +9,7 @@ defmodule LiveUi.Live.EngineTest do
   alias LiveUi.Live.Engine
   alias LiveUi.Runtime.Model
   alias LiveUi.TestSupport.CounterScreen
+  alias LiveUi.TestSupport.RawIur
   alias LiveUi.TestSupport.WrapperLive
   alias Phoenix.LiveView.Socket
 
@@ -54,6 +55,26 @@ defmodule LiveUi.Live.EngineTest do
 
     assert mounted_socket.assigns.live_ui_model.runtime_context.signal_source ==
              "/dynamic/live_ui"
+  end
+
+  test "mount_dynamic accepts canonical raw iur sessions through the shared engine" do
+    socket = socket_for(DynamicLive, "dynamic-iur-1", nil)
+
+    assert {:ok, %Socket{} = mounted_socket} =
+             Engine.mount_dynamic(
+               %{"request_id" => "req-iur-200"},
+               LiveUi.dynamic_iur_session(RawIur.counter_tree(11),
+                 context: %{signal_source: "/dynamic/live_ui", trace_id: "trace-iur-1"}
+               ),
+               socket
+             )
+
+    assert %Model{} = mounted_socket.assigns.live_ui_model
+    assert mounted_socket.assigns.page_title == "vbox"
+    assert mounted_socket.assigns.live_ui_model.source.kind == :iur
+    assert mounted_socket.assigns.live_ui_model.screen_state == %{}
+    assert mounted_socket.assigns.live_ui_model.descriptor_tree.id == "raw-counter-root"
+    assert mounted_socket.assigns.live_ui_model.runtime_context.trace_id == "trace-iur-1"
   end
 
   test "handle_event updates assigns through the shared engine" do

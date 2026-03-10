@@ -51,6 +51,7 @@ The host Phoenix application should be responsible for:
 
 - `LiveUi`
   - Public API for library configuration and screen mounting helpers.
+  - Exposes `dynamic_session/2` for module-backed dynamic mounts and `dynamic_iur_session/2` for canonical raw IUR mounts.
 - `LiveUi.Screen`
   - Macro for defining a host-facing LiveView wrapper for one DSL screen module.
   - Public API shape: `use LiveUi.Screen, source: MyApp.SomeScreen`.
@@ -153,6 +154,7 @@ The host Phoenix application should be responsible for:
 ### Canonical IUR path
 
 1. `LiveUi.Live.DynamicLive` or a dedicated component receives canonical `UnifiedIUR` input.
+   - Host routes should pass that input through `LiveUi.dynamic_iur_session/2`.
 2. `LiveUi.Source.IUR` validates schema markers when present.
 3. `LiveUi.IUR.Interpreter` normalizes the input into the same descriptor tree used by the DSL path.
 4. Rendering and event handling proceed through the same registry and runtime layers.

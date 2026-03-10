@@ -5,6 +5,7 @@ defmodule LiveUi.Host.RouterIntegrationTest do
   alias LiveUi.Live.DynamicLive
   alias LiveUi.Router
   alias LiveUi.TestSupport.CounterScreen
+  alias LiveUi.TestSupport.RawIur
   alias LiveUi.TestSupport.WrapperLive
   alias Phoenix.LiveView.Socket
 
@@ -41,6 +42,22 @@ defmodule LiveUi.Host.RouterIntegrationTest do
     assert mounted_socket.assigns.live_ui_model.source.module == CounterScreen
     assert mounted_socket.assigns.live_ui_model.screen_state.count == 5
     assert mounted_socket.assigns.live_ui_model.runtime_context.view == DynamicLive
+  end
+
+  test "dynamic entrypoint mounts canonical raw iur payloads through the host" do
+    socket = socket_for(DynamicLive, "host-dynamic-iur", nil)
+
+    session =
+      LiveUi.dynamic_iur_session(RawIur.counter_tree(6), context: %{trace_id: "raw-iur-1"})
+
+    assert {:ok, %Socket{} = mounted_socket} =
+             DynamicLive.mount(%{"request_id" => "router-3"}, session, socket)
+
+    assert mounted_socket.assigns.page_title == "vbox"
+    assert mounted_socket.assigns.live_ui_model.source.kind == :iur
+    assert mounted_socket.assigns.live_ui_model.descriptor_tree.id == "raw-counter-root"
+    assert mounted_socket.assigns.live_ui_model.runtime_context.view == DynamicLive
+    assert mounted_socket.assigns.live_ui_model.runtime_context.trace_id == "raw-iur-1"
   end
 
   defp socket_for(view, id, live_action) do

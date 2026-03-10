@@ -13,17 +13,18 @@ defmodule LiveUi.Runtime do
   @type init_opt ::
           {:runtime_context, map()}
           | {:source, module()}
+          | {:iur, term()}
           | {:source_opts, keyword()}
           | {:widget_state, map()}
 
   @spec init([init_opt()]) :: {:ok, Model.t()} | {:error, Exception.t()}
   def init(opts) when is_list(opts) do
-    source = Source.new(Keyword.fetch!(opts, :source), Keyword.get(opts, :source_opts, []))
     runtime_context = Keyword.get(opts, :runtime_context, %{})
     widget_state = Keyword.get(opts, :widget_state, %{})
-    screen_state = init_screen_state(source)
 
-    with {:ok, build} <- build_view_state(source, screen_state, widget_state) do
+    with {:ok, source} <- init_source(opts),
+         screen_state <- init_screen_state(source),
+         {:ok, build} <- build_view_state(source, screen_state, widget_state) do
       {:ok,
        Model.new(
          runtime_context: runtime_context,
@@ -39,6 +40,27 @@ defmodule LiveUi.Runtime do
     end
   rescue
     error in [ConfigurationError, KeyError] -> {:error, error}
+  end
+
+  defp init_source(opts) do
+    has_source? = Keyword.has_key?(opts, :source)
+    has_iur? = Keyword.has_key?(opts, :iur)
+
+    cond do
+      has_source? and has_iur? ->
+        {:error,
+         ConfigurationError.new("live_ui runtime accepts either :source or :iur, not both")}
+
+      has_source? ->
+        {:ok, Source.new(Keyword.fetch!(opts, :source), Keyword.get(opts, :source_opts, []))}
+
+      has_iur? ->
+        {:ok, Source.new_iur(Keyword.fetch!(opts, :iur))}
+
+      true ->
+        {:error,
+         ConfigurationError.new("live_ui runtime requires either a :source or :iur option")}
+    end
   end
 
   @spec handle_event(Model.t(), String.t() | atom(), map()) ::
@@ -94,21 +116,27 @@ defmodule LiveUi.Runtime do
     error in [ConfigurationError] -> {:error, error}
   end
 
-  defp init_screen_state(%Source{module: source_module, opts: source_opts}) do
+  defp init_screen_state(%Source{kind: :module, module: source_module, opts: source_opts}) do
     source_module
     |> apply(:init, [source_opts])
     |> normalize_state_result(:init)
   end
 
-  defp update_screen_state(%Source{module: source_module}, screen_state, signal) do
+  defp init_screen_state(%Source{kind: :iur}), do: %{}
+
+  defp update_screen_state(%Source{kind: :module, module: source_module}, screen_state, signal) do
     source_module
     |> apply(:update, [screen_state, signal])
     |> normalize_state_result(:update)
   end
 
-  defp render_iur_tree(%Source{module: source_module}, screen_state) do
+  defp update_screen_state(%Source{kind: :iur}, screen_state, _signal), do: screen_state
+
+  defp render_iur_tree(%Source{kind: :module, module: source_module}, screen_state) do
     apply(source_module, :view, [screen_state])
   end
+
+  defp render_iur_tree(%Source{kind: :iur, iur: iur_tree}, _screen_state), do: iur_tree
 
   defp count_nodes(descriptor) do
     1 + Enum.reduce(descriptor.children, 0, fn child, count -> count + count_nodes(child) end)
