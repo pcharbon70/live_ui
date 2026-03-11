@@ -65,6 +65,27 @@ defmodule LiveUi.Components.Helpers do
   @spec hook_name(map()) :: String.t() | nil
   def hook_name(descriptor), do: Assets.hook_name(kind(descriptor))
 
+  @spec direct_descriptor(map(), String.t(), map()) :: map()
+  def direct_descriptor(assigns, kind, extra_props \\ %{}) do
+    %{
+      id: Map.get(assigns, :id, Map.get(assigns, "id")),
+      kind: kind,
+      props: direct_props(assigns, extra_props),
+      signal_bindings: Map.get(assigns, :signal_bindings, Map.get(assigns, "signal_bindings", []))
+    }
+  end
+
+  @spec direct_props(map(), map()) :: map()
+  def direct_props(assigns, extra_props \\ %{}) do
+    extra_props
+    |> Map.merge(%{
+      "style" => merged_direct_style(assigns),
+      "visible" => Map.get(assigns, :visible, Map.get(assigns, "visible", true))
+    })
+    |> Enum.reject(fn {_key, value} -> is_nil(value) end)
+    |> Map.new()
+  end
+
   @spec visible?(map()) :: boolean()
   def visible?(descriptor) do
     descriptor
@@ -198,4 +219,29 @@ defmodule LiveUi.Components.Helpers do
     do: value |> Atom.to_string() |> normalize_string()
 
   defp normalize_string(_value), do: nil
+
+  defp merged_direct_style(assigns) do
+    style = Map.get(assigns, :style, Map.get(assigns, "style", %{}))
+    class_name = Map.get(assigns, :class, Map.get(assigns, "class"))
+
+    case normalize_class_name(class_name) do
+      nil ->
+        style
+
+      class_name ->
+        existing = Map.get(style, "class", Map.get(style, :class))
+
+        Map.put(
+          style,
+          "class",
+          Enum.join(Enum.reject([existing, class_name], &(&1 in [nil, ""])), " ")
+        )
+    end
+  end
+
+  defp normalize_class_name(nil), do: nil
+  defp normalize_class_name(""), do: nil
+  defp normalize_class_name(class_name) when is_binary(class_name), do: class_name
+  defp normalize_class_name(class_name) when is_list(class_name), do: Enum.join(class_name, " ")
+  defp normalize_class_name(class_name), do: to_string(class_name)
 end

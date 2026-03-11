@@ -36,6 +36,11 @@ defmodule LiveUi.Architecture.PackageContractTest do
     assert Code.ensure_loaded?(Widgets)
     assert function_exported?(Widgets, :vbox, 1)
     assert function_exported?(Widgets, :button, 1)
+    assert function_exported?(Widgets, :tabs, 1)
+    assert function_exported?(Widgets, :dialog, 1)
+    assert function_exported?(Widgets, :table, 1)
+    assert function_exported?(Widgets, :gauge, 1)
+    assert function_exported?(Widgets, :process_monitor, 1)
     assert WidgetRegistry.supported_kind?("canvas")
     assert Assets.hook_name("viewport") == "LiveUi.Viewport"
     assert Assets.javascript_import_path() == "../../deps/live_ui/assets/js/live_ui"

@@ -114,19 +114,7 @@ defmodule LiveUi.Components.BasicWidgets do
   defp truthy?(_value), do: false
 
   defp direct_render(assigns, kind, extra_props) do
-    descriptor = %{
-      id: Map.get(assigns, :id, Map.get(assigns, "id")),
-      kind: kind,
-      props:
-        extra_props
-        |> Map.merge(%{
-          "style" => merged_style(assigns),
-          "visible" => Map.get(assigns, :visible, Map.get(assigns, "visible", true))
-        })
-        |> Enum.reject(fn {_key, value} -> is_nil(value) end)
-        |> Map.new(),
-      signal_bindings: Map.get(assigns, :signal_bindings, Map.get(assigns, "signal_bindings", []))
-    }
+    descriptor = Helpers.direct_descriptor(assigns, kind, extra_props)
 
     assigns = assign(assigns, :descriptor, descriptor)
 
@@ -134,29 +122,4 @@ defmodule LiveUi.Components.BasicWidgets do
     <.render descriptor={@descriptor} />
     """
   end
-
-  defp merged_style(assigns) do
-    style = Map.get(assigns, :style, Map.get(assigns, "style", %{}))
-    class_name = Map.get(assigns, :class, Map.get(assigns, "class"))
-
-    case normalize_class_name(class_name) do
-      nil ->
-        style
-
-      class_name ->
-        existing = Map.get(style, "class", Map.get(style, :class))
-
-        Map.put(
-          style,
-          "class",
-          Enum.join(Enum.reject([existing, class_name], &(&1 in [nil, ""])), " ")
-        )
-    end
-  end
-
-  defp normalize_class_name(nil), do: nil
-  defp normalize_class_name(""), do: nil
-  defp normalize_class_name(class_name) when is_binary(class_name), do: class_name
-  defp normalize_class_name(class_name) when is_list(class_name), do: Enum.join(class_name, " ")
-  defp normalize_class_name(class_name), do: to_string(class_name)
 end
