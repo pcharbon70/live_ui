@@ -37,6 +37,18 @@ The host Phoenix application should be responsible for:
 - importing or registering `live_ui` JavaScript hooks in its own asset pipeline
 - choosing how screen modules or canonical IUR inputs are routed into the mounted LiveView
 
+Example host asset registration:
+
+```javascript
+import LiveUiHooks from "../../deps/live_ui/assets/js/live_ui"
+
+const liveSocket = new LiveSocket("/live", Socket, {
+  hooks: {
+    ...LiveUiHooks,
+  },
+})
+```
+
 `live_ui` should be responsible for:
 
 - publishing mount helpers and route conventions
@@ -60,6 +72,7 @@ The host Phoenix application should be responsible for:
   - Optional helper macro or helper functions for mounting screens from a host router.
 - `LiveUi.Assets`
   - Exposes JS hook registration and any required static assets so the host app can import them into its own bundle.
+  - Publishes the ES module entrypoint at `../../deps/live_ui/assets/js/live_ui`.
 - `LiveUi.Session`
   - Normalizes host session, assigns, and route params into runtime context for the mounted screen.
 
