@@ -1,8 +1,8 @@
 # LiveUi IUR Interpreter
 
-The interpreter subject converts canonical `UnifiedIUR` input and `UnifiedUi` extension structs into one normalized descriptor tree that the LiveView renderer can consume.
+The interpreter subject converts canonical `UnifiedIUR` input and compatible extension nodes into one normalized render tree that the independent live_ui widget library can consume.
 
-It is the adapter contract between platform-agnostic UI data and LiveView-specific rendering.
+It is the adapter contract between platform-agnostic UI data and live_ui-owned rendering semantics.
 
 ```spec-meta
 {
@@ -16,6 +16,8 @@ It is the adapter contract between platform-agnostic UI data and LiveView-specif
     {"kind": "governed_by", "target": "policy.live_ui_governance"},
     {"kind": "governed_by", "target": "policy.live_ui_conformance"},
     {"kind": "relates_to", "target": "module.live_ui_widget_system"},
+    {"kind": "relates_to", "target": "module.live_ui_theme_system"},
+    {"kind": "relates_to", "target": "module.live_ui_layer_system"},
     {"kind": "relates_to", "target": "module.live_ui_signal_bridge"}
   ]
 }
@@ -28,12 +30,12 @@ It is the adapter contract between platform-agnostic UI data and LiveView-specif
   "primary_plane": "rendering",
   "change_rules": [
     {
-      "id": "interpreter_changes_require_widget_and_signal_alignment",
+      "id": "interpreter_changes_require_widget_theme_layer_alignment",
       "when": {
         "change_types": ["behavior_shape"]
       },
       "requires": [
-        {"subject_ids": ["module.live_ui_widget_system", "module.live_ui_signal_bridge"]},
+        {"subject_ids": ["module.live_ui_widget_system", "module.live_ui_theme_system", "module.live_ui_layer_system", "module.live_ui_signal_bridge"]},
         {"verification_kinds": ["test_file"]}
       ],
       "severity": "error"
@@ -59,14 +61,14 @@ It is the adapter contract between platform-agnostic UI data and LiveView-specif
 ```spec-requirements
 [
   {
-    "id": "live_ui_iur.accepts.canonical_and_extended_inputs",
-    "statement": "When the interpreter receives canonical UnifiedIUR structs, canonical map payloads, or unified-ui extension structs implementing UnifiedIUR.Element, the interpreter shall normalize them through one node traversal path.",
+    "id": "live_ui_iur.accepts.canonical_and_compatible_inputs",
+    "statement": "When the interpreter receives canonical UnifiedIUR structs, canonical map payloads, or compatible extension nodes implementing UnifiedIUR.Element, the interpreter shall normalize them through one traversal path.",
     "priority": "must",
     "stability": "stable"
   },
   {
-    "id": "live_ui_iur.normalizes.descriptor_tree",
-    "statement": "When a node is interpreted, the interpreter shall emit a descriptor tree containing stable ids, widget or layout kinds, normalized props, and ordered children.",
+    "id": "live_ui_iur.normalizes.render_tree",
+    "statement": "When a node is interpreted, the interpreter shall emit a render tree containing stable ids, widget or layout kinds, normalized props, and ordered children.",
     "priority": "must",
     "stability": "stable"
   },
@@ -79,6 +81,12 @@ It is the adapter contract between platform-agnostic UI data and LiveView-specif
   {
     "id": "live_ui_iur.extracts.signal_bindings",
     "statement": "When an interpreted node exposes signal-bearing fields, the interpreter shall emit normalized signal bindings containing widget identity, source field, and normalized signal payload.",
+    "priority": "must",
+    "stability": "stable"
+  },
+  {
+    "id": "live_ui_iur.emits.theme_and_layer_traits",
+    "statement": "When an interpreted node carries style, layout, or overlay semantics, the interpreter shall emit normalized render traits needed by the widget, theme, and layer systems.",
     "priority": "must",
     "stability": "stable"
   },
@@ -96,25 +104,32 @@ It is the adapter contract between platform-agnostic UI data and LiveView-specif
 ```spec-scenarios
 [
   {
-    "id": "live_ui_iur.interprets_dsl_built_iur",
-    "given": ["an IUR tree built from UnifiedUi.IUR.Builder including unified-ui extension structs"],
+    "id": "live_ui_iur.interprets_canonical_tree",
+    "given": ["a canonical UnifiedIUR tree containing layout, widget, and extension nodes adopted by the library"],
     "when": ["the tree is interpreted"],
-    "then": ["canonical and extension nodes are emitted into one normalized descriptor tree"],
-    "covers": ["live_ui_iur.accepts.canonical_and_extended_inputs", "live_ui_iur.normalizes.descriptor_tree"]
+    "then": ["canonical and compatible extension nodes are emitted into one normalized render tree"],
+    "covers": ["live_ui_iur.accepts.canonical_and_compatible_inputs", "live_ui_iur.normalizes.render_tree"]
   },
   {
     "id": "live_ui_iur.validates_schema_markers",
     "given": ["a canonical map payload with schema markers"],
     "when": ["the payload is interpreted"],
-    "then": ["schema name, source, and version are validated before descriptor generation"],
+    "then": ["schema name, source, and version are validated before render-tree generation"],
     "covers": ["live_ui_iur.validates.schema_markers"]
   },
   {
     "id": "live_ui_iur.extracts_button_binding",
     "given": ["a button node with an on_click signal"],
     "when": ["the node is interpreted"],
-    "then": ["a normalized signal binding is emitted alongside the descriptor node"],
-    "covers": ["live_ui_iur.extracts.signal_bindings", "live_ui_iur.normalizes.descriptor_tree"]
+    "then": ["a normalized signal binding is emitted alongside the render-tree node"],
+    "covers": ["live_ui_iur.extracts.signal_bindings", "live_ui_iur.normalizes.render_tree"]
+  },
+  {
+    "id": "live_ui_iur.emits_overlay_traits",
+    "given": ["a node carrying style, geometry, or overlay semantics"],
+    "when": ["the node is interpreted"],
+    "then": ["normalized traits needed by the widget, theme, and layer systems are emitted"],
+    "covers": ["live_ui_iur.emits.theme_and_layer_traits", "live_ui_iur.normalizes.render_tree"]
   },
   {
     "id": "live_ui_iur_rejects_unknown_kind",
@@ -134,10 +149,11 @@ It is the adapter contract between platform-agnostic UI data and LiveView-specif
     "kind": "doc",
     "target": "docs/architecture.md",
     "covers": [
-      "live_ui_iur.accepts.canonical_and_extended_inputs",
-      "live_ui_iur.normalizes.descriptor_tree",
+      "live_ui_iur.accepts.canonical_and_compatible_inputs",
+      "live_ui_iur.normalizes.render_tree",
       "live_ui_iur.validates.schema_markers",
       "live_ui_iur.extracts.signal_bindings",
+      "live_ui_iur.emits.theme_and_layer_traits",
       "live_ui_iur.rejects.unsupported_nodes"
     ]
   },
@@ -145,9 +161,10 @@ It is the adapter contract between platform-agnostic UI data and LiveView-specif
     "kind": "test_file",
     "target": "test/live_ui/iur/interpreter_test.exs",
     "covers": [
-      "live_ui_iur.accepts.canonical_and_extended_inputs",
-      "live_ui_iur.normalizes.descriptor_tree",
+      "live_ui_iur.accepts.canonical_and_compatible_inputs",
+      "live_ui_iur.normalizes.render_tree",
       "live_ui_iur.extracts.signal_bindings",
+      "live_ui_iur.emits.theme_and_layer_traits",
       "live_ui_iur.rejects.unsupported_nodes"
     ]
   },

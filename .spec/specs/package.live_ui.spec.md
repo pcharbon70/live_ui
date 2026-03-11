@@ -1,19 +1,18 @@
 # LiveUi Package Contract
 
-`live_ui` is the Phoenix LiveView adapter package for `unified-ui` screens and canonical `UnifiedIUR` trees.
+`live_ui` is the Phoenix LiveView widget library and rendering runtime for canonical `UnifiedIUR` trees.
 
-The package should preserve the `UnifiedUi` design principle that the authored DSL and the runtime rendering pipeline are separate concerns. `unified-ui` owns DSL authoring and IUR generation. `live_ui` owns LiveView mounting, interpretation, rendering, event bridging, and widget-local state.
+The package owns interpretation, widget rendering, theming, layering, event bridging, and host integration. Upstream tools may produce `UnifiedIUR`, but `live_ui` should not depend on their widget implementations once the IUR boundary is crossed.
 
-The package also needs an explicit compatibility story for the current gap between canonical `unified_iur` and `unified-ui` extension widgets. The canonical path and the DSL path should converge on one rendering contract.
+Optional source modules may adapt into the same pipeline by emitting canonical `UnifiedIUR` from `view/1`, but the package's primary rendering contract is the canonical IUR itself.
 
 ```spec-meta
 {
   "id": "package.live_ui",
   "kind": "package",
   "status": "draft",
-  "surface": ["LiveUi"],
+  "surface": ["LiveUi", "LiveUi.Widgets"],
   "relationships": [
-    {"kind": "depends_on", "target": "package.unified_ui"},
     {"kind": "depends_on", "target": "package.unified_iur"},
     {"kind": "governed_by", "target": "policy.live_ui_governance"},
     {"kind": "governed_by", "target": "policy.live_ui_conformance"},
@@ -22,6 +21,8 @@ The package also needs an explicit compatibility story for the current gap betwe
     {"kind": "relates_to", "target": "module.live_ui_runtime"},
     {"kind": "relates_to", "target": "module.live_ui_iur_interpreter"},
     {"kind": "relates_to", "target": "module.live_ui_widget_system"},
+    {"kind": "relates_to", "target": "module.live_ui_theme_system"},
+    {"kind": "relates_to", "target": "module.live_ui_layer_system"},
     {"kind": "relates_to", "target": "module.live_ui_signal_bridge"}
   ]
 }
@@ -65,14 +66,26 @@ The package also needs an explicit compatibility story for the current gap betwe
 ```spec-requirements
 [
   {
-    "id": "live_ui.input.dual_pipeline",
-    "statement": "When the package receives either a UnifiedUi DSL screen module or a canonical UnifiedIUR tree, the package shall route both inputs through one normalized LiveView rendering pipeline.",
+    "id": "live_ui.input.iur_primary_contract",
+    "statement": "When the package renders a UI, the package shall treat canonical UnifiedIUR as the primary rendering contract and shall allow optional source modules only as adapters that emit the same canonical IUR.",
+    "priority": "must",
+    "stability": "stable"
+  },
+  {
+    "id": "live_ui.widget_library.owns_rendering_contract",
+    "statement": "When the package renders a UnifiedIUR tree, the package shall use an independent widget library, layout system, layer system, and theme system owned by live_ui rather than depending on upstream renderer implementations.",
+    "priority": "must",
+    "stability": "stable"
+  },
+  {
+    "id": "live_ui.widget_library.public_components",
+    "statement": "When a host application composes screens directly, the package shall expose live_ui widgets and layouts as public components that can be used without going through the UnifiedIUR interpreter.",
     "priority": "must",
     "stability": "stable"
   },
   {
     "id": "live_ui.render.normalization_boundary",
-    "statement": "When a UI source is rendered, the package shall preserve a boundary in which DSL compilation remains owned by unified-ui and LiveView interpretation remains owned by live_ui.",
+    "statement": "When a UI source is rendered, the package shall preserve a boundary in which upstream producers stop at canonical UnifiedIUR and live_ui owns interpretation and rendering after that boundary.",
     "priority": "must",
     "stability": "stable"
   },
@@ -84,25 +97,25 @@ The package also needs an explicit compatibility story for the current gap betwe
   },
   {
     "id": "live_ui.integration.hybrid_entrypoints",
-    "statement": "When the package exposes host-facing rendering entrypoints, the package shall provide tiny manually authored screen-specific wrappers through use LiveUi.Screen for normal DSL screen mounting and a generic dynamic entrypoint for canonical UnifiedIUR or validated runtime-selected sources, while sharing one internal runtime engine.",
+    "statement": "When the package exposes host-facing rendering entrypoints, the package shall provide a canonical UnifiedIUR entrypoint as the primary path, a direct widget composition path for public components, and may provide thin source-module wrappers through use LiveUi.Screen as an adapter path, while sharing one internal rendering contract.",
     "priority": "must",
     "stability": "stable"
   },
   {
     "id": "live_ui.widget.catalog.parity",
-    "statement": "When the package renders the unified-ui catalog, the package shall support all canonical UnifiedIUR widgets and all unified-ui extension widgets required by the DSL.",
+    "statement": "When the package renders the supported catalog, the package shall support all canonical UnifiedIUR widgets and every explicitly adopted extension kind in the live_ui widget library contract.",
     "priority": "must",
     "stability": "stable"
   },
   {
     "id": "live_ui.event.loop.rebuild",
-    "statement": "When a user interaction is accepted, the package shall encode the interaction as a concrete `%Jido.Signal{}`, rebuild the interpreted tree, and rely on LiveView diffing for DOM reconciliation.",
+    "statement": "When a user interaction is accepted, the package shall encode the interaction as a concrete `%Jido.Signal{}`, rebuild the interpreted render tree, and rely on LiveView diffing for DOM reconciliation.",
     "priority": "must",
     "stability": "stable"
   },
   {
     "id": "live_ui.state.separation",
-    "statement": "While a screen is mounted, the package shall keep screen domain state separate from widget-local adapter state and make both available during rebuilds.",
+    "statement": "While a UI is mounted, the package shall keep source domain state, widget-local state, layer-local state, and render metadata separate and make those domains available during rebuilds.",
     "priority": "must",
     "stability": "stable"
   }
@@ -114,18 +127,25 @@ The package also needs an explicit compatibility story for the current gap betwe
 ```spec-scenarios
 [
   {
-    "id": "live_ui.dsl_screen_mount",
-    "given": ["a screen module that uses UnifiedUi.Dsl and UnifiedUi.ElmArchitecture"],
-    "when": ["the screen is mounted in LiveView"],
-    "then": ["the module is initialized, compiled to IUR, interpreted, and rendered through the same descriptor pipeline used for canonical IUR"],
-    "covers": ["live_ui.input.dual_pipeline", "live_ui.render.normalization_boundary", "live_ui.event.loop.rebuild"]
+    "id": "live_ui.canonical_iur_mount",
+    "given": ["a canonical UnifiedIUR tree produced outside the library"],
+    "when": ["the tree is mounted for rendering"],
+    "then": ["the tree is interpreted, themed, layered, and rendered through the independent live_ui widget library without requiring any upstream widget implementation"],
+    "covers": ["live_ui.input.iur_primary_contract", "live_ui.widget_library.owns_rendering_contract", "live_ui.render.normalization_boundary"]
   },
   {
-    "id": "live_ui.canonical_iur_mount",
-    "given": ["a canonical UnifiedIUR tree produced outside the DSL"],
-    "when": ["the tree is mounted for rendering"],
-    "then": ["the tree is interpreted and rendered without requiring a UnifiedUi DSL module"],
-    "covers": ["live_ui.input.dual_pipeline", "live_ui.render.normalization_boundary"]
+    "id": "live_ui.direct_widget_composition",
+    "given": ["a host LiveView composing a screen directly from public live_ui widgets and layouts"],
+    "when": ["the screen is rendered"],
+    "then": ["the same library-owned widget semantics, theme system, and layer system are used without requiring UnifiedIUR input"],
+    "covers": ["live_ui.widget_library.public_components", "live_ui.widget_library.owns_rendering_contract", "live_ui.integration.hybrid_entrypoints"]
+  },
+  {
+    "id": "live_ui.source_module_mount",
+    "given": ["a source module that emits canonical UnifiedIUR from view/1"],
+    "when": ["the source is mounted in LiveView"],
+    "then": ["the source is initialized, emits canonical IUR, and enters the same interpretation and rendering pipeline used for raw IUR"],
+    "covers": ["live_ui.input.iur_primary_contract", "live_ui.render.normalization_boundary", "live_ui.event.loop.rebuild"]
   },
   {
     "id": "live_ui.host_app_mount",
@@ -135,18 +155,11 @@ The package also needs an explicit compatibility story for the current gap betwe
     "covers": ["live_ui.integration.host_mounted_library"]
   },
   {
-    "id": "live_ui.hybrid_entrypoint_usage",
-    "given": ["a host app mounting a regular DSL screen and a separate admin preview route for canonical UnifiedIUR"],
-    "when": ["the host integrates live_ui"],
-    "then": ["tiny manually authored screen-specific wrappers are used for normal screens, the generic entrypoint is used for dynamic rendering, and both delegate to the same internal runtime engine"],
-    "covers": ["live_ui.integration.hybrid_entrypoints", "live_ui.integration.host_mounted_library", "live_ui.input.dual_pipeline"]
-  },
-  {
-    "id": "live_ui.extension_widget_roundtrip",
-    "given": ["a unified-ui screen containing viewport, split_pane, canvas, or command_palette widgets"],
-    "when": ["the screen is rendered and interacted with"],
-    "then": ["the extension widgets remain first-class supported nodes in the rendering and event pipeline"],
-    "covers": ["live_ui.widget.catalog.parity", "live_ui.event.loop.rebuild", "live_ui.state.separation"]
+    "id": "live_ui.layered_widget_roundtrip",
+    "given": ["a UnifiedIUR tree containing overlay, navigation, data visualization, and advanced interaction widgets"],
+    "when": ["the tree is rendered and interacted with"],
+    "then": ["the live_ui widget library, theme system, and layer system remain first-class participants in rendering and event handling"],
+    "covers": ["live_ui.widget_library.owns_rendering_contract", "live_ui.widget.catalog.parity", "live_ui.event.loop.rebuild", "live_ui.state.separation"]
   }
 ]
 ```
@@ -159,7 +172,9 @@ The package also needs an explicit compatibility story for the current gap betwe
     "kind": "doc",
     "target": "docs/architecture.md",
     "covers": [
-      "live_ui.input.dual_pipeline",
+      "live_ui.input.iur_primary_contract",
+      "live_ui.widget_library.owns_rendering_contract",
+      "live_ui.widget_library.public_components",
       "live_ui.render.normalization_boundary",
       "live_ui.integration.host_mounted_library",
       "live_ui.integration.hybrid_entrypoints",
@@ -172,7 +187,7 @@ The package also needs an explicit compatibility story for the current gap betwe
     "kind": "test_file",
     "target": "test/live_ui/architecture/package_contract_test.exs",
     "covers": [
-      "live_ui.input.dual_pipeline",
+      "live_ui.input.iur_primary_contract",
       "live_ui.integration.host_mounted_library",
       "live_ui.integration.hybrid_entrypoints",
       "live_ui.widget.catalog.parity",
@@ -183,16 +198,22 @@ The package also needs an explicit compatibility story for the current gap betwe
     "kind": "test_file",
     "target": "test/live_ui/architecture/golden_parity_test.exs",
     "covers": [
-      "live_ui.input.dual_pipeline",
+      "live_ui.input.iur_primary_contract",
       "live_ui.render.normalization_boundary",
+      "live_ui.widget_library.owns_rendering_contract",
       "live_ui.widget.catalog.parity"
     ]
+  },
+  {
+    "kind": "test_file",
+    "target": "test/live_ui/components/widget_rendering_test.exs",
+    "covers": ["live_ui.widget_library.public_components"]
   },
   {
     "kind": "command",
     "target": "mix test test/live_ui/**/*_test.exs",
     "covers": [
-      "live_ui.input.dual_pipeline",
+      "live_ui.input.iur_primary_contract",
       "live_ui.integration.host_mounted_library",
       "live_ui.integration.hybrid_entrypoints",
       "live_ui.widget.catalog.parity",

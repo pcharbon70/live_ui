@@ -1,6 +1,6 @@
 # LiveUi Screen Macro
 
-The screen macro subject defines the public wrapper API used by host applications for ordinary DSL-backed screens.
+The screen macro subject defines the public wrapper API used by host applications for optional source-module adapters.
 
 This subject should keep the host-facing wrapper small and explicit while hiding the shared runtime engine behind a stable `use LiveUi.Screen, source: ...` contract.
 
@@ -60,19 +60,19 @@ This subject should keep the host-facing wrapper small and explicit while hiding
 [
   {
     "id": "live_ui_screen.uses_explicit_source_option",
-    "statement": "When a host defines a screen wrapper, the LiveUi.Screen macro shall accept an explicit source option that identifies the UnifiedUi DSL screen module to mount.",
+    "statement": "When a host defines a screen wrapper, the LiveUi.Screen macro shall accept an explicit source option that identifies a source module which emits canonical UnifiedIUR from view/1.",
     "priority": "must",
     "stability": "stable"
   },
   {
     "id": "live_ui_screen.source_is_module_only",
-    "statement": "When the source option is declared on LiveUi.Screen, the macro shall require a screen module reference and shall not overload the option with registry keys, strings, or runtime-selected source values.",
+    "statement": "When the source option is declared on LiveUi.Screen, the macro shall require a source-module reference and shall not overload the option with registry keys, strings, or runtime-selected source values.",
     "priority": "must",
     "stability": "stable"
   },
   {
     "id": "live_ui_screen.keeps_wrapper_minimal",
-    "statement": "When a host defines a screen wrapper with LiveUi.Screen, the wrapper shall remain a tiny manually authored LiveView module rather than requiring code generation.",
+    "statement": "When a host defines a source wrapper with LiveUi.Screen, the wrapper shall remain a tiny manually authored LiveView module rather than requiring code generation.",
     "priority": "must",
     "stability": "stable"
   },
@@ -102,7 +102,7 @@ This subject should keep the host-facing wrapper small and explicit while hiding
   },
   {
     "id": "live_ui_screen.rejects_invalid_source_configuration",
-    "statement": "If the screen macro is declared without a valid source module configuration, then the macro shall fail with an explicit configuration error rather than deferring the failure to runtime rendering.",
+    "statement": "If the screen macro is declared without a valid source-module configuration, then the macro shall fail with an explicit configuration error rather than deferring the failure to runtime rendering.",
     "priority": "must",
     "stability": "stable"
   }
@@ -115,9 +115,9 @@ This subject should keep the host-facing wrapper small and explicit while hiding
 [
   {
     "id": "live_ui_screen.manual_wrapper_definition",
-    "given": ["a host module declared as use LiveUi.Screen, source: MyApp.CounterScreen"],
+    "given": ["a host module declared as use LiveUi.Screen, source: MyApp.CounterSource"],
     "when": ["the host compiles and mounts the wrapper"],
-    "then": ["the wrapper remains tiny, names its source screen explicitly, and delegates runtime behavior to the shared engine"],
+    "then": ["the wrapper remains tiny, names its source explicitly, and delegates runtime behavior to the shared engine"],
     "covers": [
       "live_ui_screen.uses_explicit_source_option",
       "live_ui_screen.source_is_module_only",
