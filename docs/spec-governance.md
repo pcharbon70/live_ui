@@ -15,6 +15,18 @@
   - `execution`
   - `rendering`
 
+## Schema
+
+- the structural shape of `spec-governance` is documented in [schemas/spec-governance.schema.json](/Users/Pascal/code/unified/live_ui/schemas/spec-governance.schema.json)
+- the schema is intentionally structural only
+- the local checker remains the authority for:
+  - cross-document policy relationships
+  - `covers` integrity
+  - waiver approval and expiry rules
+  - verification target existence
+
+This keeps the format explicit without trying to force all governance semantics into JSON Schema.
+
 ## Compliance Rules
 
 - compliance is derived, not authored
