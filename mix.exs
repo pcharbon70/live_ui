@@ -48,6 +48,7 @@ defmodule LiveUi.MixProject do
 
   defp package do
     [
+      files: ["assets", "docs", "lib", "mix.exs", "README.md", "schemas"],
       name: "live_ui",
       licenses: ["MIT"],
       links: %{

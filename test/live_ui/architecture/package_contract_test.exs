@@ -34,5 +34,6 @@ defmodule LiveUi.Architecture.PackageContractTest do
     assert macro_exported?(Screen, :__using__, 1)
     assert WidgetRegistry.supported_kind?("canvas")
     assert Assets.hook_name("viewport") == "LiveUi.Viewport"
+    assert Assets.javascript_import_path() == "../../deps/live_ui/assets/js/live_ui"
   end
 end
