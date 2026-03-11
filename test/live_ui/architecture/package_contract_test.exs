@@ -34,6 +34,7 @@ defmodule LiveUi.Architecture.PackageContractTest do
     assert Router.screen(LiveUi.TestSupport.WrapperLive) == LiveUi.TestSupport.WrapperLive
     assert macro_exported?(Screen, :__using__, 1)
     assert Code.ensure_loaded?(Widgets)
+    assert function_exported?(Widgets, :theme, 1)
     assert function_exported?(Widgets, :vbox, 1)
     assert function_exported?(Widgets, :button, 1)
     assert function_exported?(Widgets, :tabs, 1)
@@ -44,5 +45,6 @@ defmodule LiveUi.Architecture.PackageContractTest do
     assert WidgetRegistry.supported_kind?("canvas")
     assert Assets.hook_name("viewport") == "LiveUi.Viewport"
     assert Assets.javascript_import_path() == "../../deps/live_ui/assets/js/live_ui"
+    assert Assets.stylesheet_import_path() == "../../deps/live_ui/assets/css/live_ui.css"
   end
 end

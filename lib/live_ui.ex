@@ -8,6 +8,9 @@ defmodule LiveUi do
   - mount canonical `UnifiedIUR` through `LiveUi.Live.DynamicLive`
   - declare thin wrapper LiveViews around source modules with `LiveUi.Screen`
 
+  Theme overrides can be applied through `LiveUi.Widgets.theme/1` for direct
+  composition or through `runtime_context.theme` for the shared engine path.
+
   `LiveUi.Live.DynamicLive` expects a session envelope produced by
   `dynamic_session/2` or `dynamic_iur_session/2`.
   """

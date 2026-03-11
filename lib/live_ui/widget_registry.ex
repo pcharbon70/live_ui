@@ -79,7 +79,7 @@ defmodule LiveUi.WidgetRegistry do
   end
 
   def render(assigns) do
-    descriptor = Map.new(assigns.descriptor)
+    descriptor = normalize_descriptor(assigns.descriptor)
     kind = normalize_kind(Map.get(descriptor, :kind, Map.get(descriptor, "kind")))
     assigns = assign(assigns, :descriptor, Map.put(descriptor, :kind, kind))
 
@@ -104,6 +104,10 @@ defmodule LiveUi.WidgetRegistry do
     <% end %>
     """
   end
+
+  defp normalize_descriptor(%_{} = descriptor), do: Map.from_struct(descriptor)
+  defp normalize_descriptor(%{} = descriptor), do: Map.new(descriptor)
+  defp normalize_descriptor(descriptor), do: %{kind: descriptor}
 
   defp normalize_kind(kind) when is_atom(kind), do: kind |> Atom.to_string() |> normalize_kind()
   defp normalize_kind(kind) when is_binary(kind), do: kind |> String.trim() |> String.downcase()
