@@ -98,8 +98,142 @@ defmodule LiveUi.Components.Layouts do
     """
   end
 
+  def vbox(assigns), do: direct_layout(assigns, "vbox")
+  def hbox(assigns), do: direct_layout(assigns, "hbox")
+  def grid(assigns), do: direct_layout(assigns, "grid")
+  def stack(assigns), do: direct_layout(assigns, "stack")
+  def zbox(assigns), do: direct_layout(assigns, "zbox")
+  def viewport(assigns), do: direct_layout(assigns, "viewport")
+  def split_pane(assigns), do: direct_layout(assigns, "split_pane")
+
   defp visible_children(children) do
     Enum.filter(children, &Helpers.visible?/1)
+  end
+
+  defp direct_children(assigns, "split_pane"), do: Map.get(assigns, :pane, [])
+  defp direct_children(assigns, "stack"), do: Map.get(assigns, :panel, [])
+  defp direct_children(assigns, "zbox"), do: Map.get(assigns, :layer, [])
+  defp direct_children(assigns, _kind), do: Map.get(assigns, :inner_block, [])
+
+  defp direct_layout(assigns, kind) do
+    descriptor = %{
+      id: Map.get(assigns, :id, Map.get(assigns, "id")),
+      kind: kind,
+      props: direct_layout_props(assigns),
+      signal_bindings: Map.get(assigns, :signal_bindings, Map.get(assigns, "signal_bindings", []))
+    }
+
+    props = Helpers.props(descriptor)
+
+    assigns =
+      assigns
+      |> assign(:descriptor, descriptor)
+      |> assign(:id, Helpers.id(descriptor))
+      |> assign(:kind, kind)
+      |> assign(:props, props)
+      |> assign(
+        :classes,
+        Helpers.classes(descriptor, ["live-ui-layout", "live-ui-layout--#{kind}"])
+      )
+      |> assign(:style, layout_style(kind, props, Helpers.inline_style(descriptor)))
+      |> assign(:hook, Helpers.hook_name(descriptor))
+      |> assign(:viewport_binding, Helpers.binding(descriptor, "on_scroll"))
+      |> assign(:split_binding, Helpers.binding(descriptor, "on_resize_change"))
+      |> assign_new(:inner_block, fn -> [] end)
+      |> assign(:direct_children, direct_children(assigns, kind))
+
+    ~H"""
+    <%= if Helpers.visible?(@descriptor) do %>
+      <section
+        id={@id}
+        class={@classes}
+        style={@style}
+        data-live-ui-kind={@kind}
+        data-live-ui-hook={@hook}
+        data-live-ui-widget-id={@id}
+      >
+        <%= case @kind do %>
+          <% "stack" -> %>
+            <%= for {slot, index} <- Enum.with_index(@direct_children) do %>
+              <div hidden={index != active_index(@props)} class="live-ui-stack__panel">
+                <%= render_slot(slot) %>
+              </div>
+            <% end %>
+          <% "zbox" -> %>
+            <%= for {slot, index} <- Enum.with_index(@direct_children) do %>
+              <div class="live-ui-zbox__layer" style={zbox_slot_style(@props, index)}>
+                <%= render_slot(slot) %>
+              </div>
+            <% end %>
+          <% "viewport" -> %>
+            <div
+              class="live-ui-viewport__content"
+              data-scroll-top={Map.get(@props, "scroll_top", 0)}
+              data-scroll-left={Map.get(@props, "scroll_left", 0)}
+              {Helpers.hook_event_attrs("scroll", @descriptor, @viewport_binding, %{
+                "axis" => Map.get(@props, "axis", "both")
+              })}
+            >
+              <%= render_slot(@inner_block) %>
+            </div>
+          <% "split_pane" -> %>
+            <%= for {slot, index} <- Enum.with_index(@direct_children) do %>
+              <div
+                class="live-ui-split-pane__pane"
+                data-pane-index={index}
+                style={split_pane_style_for_count(@props, length(@direct_children), index)}
+              >
+                <%= render_slot(slot) %>
+              </div>
+              <button
+                :if={index < length(@direct_children) - 1}
+                type="button"
+                class="live-ui-split-pane__handle"
+                aria-label="Resize pane"
+                data-pane-index={index}
+                {Helpers.hook_event_attrs("resize", @descriptor, @split_binding, %{
+                  "orientation" => split_orientation(@props),
+                  "pane_index" => index,
+                  "sizes" => split_sizes_for_count(@props, length(@direct_children))
+                })}
+              >
+                <span aria-hidden="true">|</span>
+              </button>
+            <% end %>
+          <% _ -> %>
+            <%= render_slot(@inner_block) %>
+        <% end %>
+      </section>
+    <% end %>
+    """
+  end
+
+  defp direct_layout_props(assigns) do
+    style = Map.get(assigns, :style, Map.get(assigns, "style", %{}))
+    class_name = Map.get(assigns, :class, Map.get(assigns, "class"))
+
+    %{
+      "active_index" => Map.get(assigns, :active_index, Map.get(assigns, "active_index")),
+      "align_items" => Map.get(assigns, :align_items, Map.get(assigns, "align_items")),
+      "axis" => Map.get(assigns, :axis, Map.get(assigns, "axis")),
+      "columns" => Map.get(assigns, :columns, Map.get(assigns, "columns")),
+      "gap" => Map.get(assigns, :gap, Map.get(assigns, "gap")),
+      "initial_split" => Map.get(assigns, :initial_split, Map.get(assigns, "initial_split")),
+      "justify_content" =>
+        Map.get(assigns, :justify_content, Map.get(assigns, "justify_content")),
+      "orientation" => Map.get(assigns, :orientation, Map.get(assigns, "orientation")),
+      "padding" => Map.get(assigns, :padding, Map.get(assigns, "padding")),
+      "positions" => Map.get(assigns, :positions, Map.get(assigns, "positions")),
+      "rows" => Map.get(assigns, :rows, Map.get(assigns, "rows")),
+      "scroll_left" => Map.get(assigns, :scroll_left, Map.get(assigns, "scroll_left")),
+      "scroll_top" => Map.get(assigns, :scroll_top, Map.get(assigns, "scroll_top")),
+      "sizes" => Map.get(assigns, :sizes, Map.get(assigns, "sizes")),
+      "spacing" => Map.get(assigns, :spacing, Map.get(assigns, "spacing")),
+      "style" => merge_direct_style(style, class_name),
+      "visible" => Map.get(assigns, :visible, Map.get(assigns, "visible", true))
+    }
+    |> Enum.reject(fn {_key, value} -> is_nil(value) end)
+    |> Map.new()
   end
 
   defp layout_style(kind, props, base_style) do
@@ -187,6 +321,13 @@ defmodule LiveUi.Components.Layouts do
     end
   end
 
+  defp split_pane_style_for_count(props, count, index) do
+    case Enum.at(split_sizes_for_count(props, count), index) do
+      nil -> nil
+      size -> "flex: 0 0 #{size}%"
+    end
+  end
+
   defp split_sizes(props, children) do
     case normalize_sizes(Map.get(props, "sizes")) do
       sizes when length(sizes) == length(children) and sizes != [] ->
@@ -195,6 +336,11 @@ defmodule LiveUi.Components.Layouts do
       _other ->
         fallback_split_sizes(props, children)
     end
+  end
+
+  defp split_sizes_for_count(props, count) do
+    phantom_children = List.duplicate(:pane, count)
+    split_sizes(props, phantom_children)
   end
 
   defp fallback_split_sizes(props, children) do
@@ -234,6 +380,24 @@ defmodule LiveUi.Components.Layouts do
 
   defp normalize_size(_value), do: nil
 
+  defp zbox_slot_style(props, index) do
+    positions = Map.get(props, "positions", %{})
+    child_position = Map.get(positions, Integer.to_string(index), %{})
+
+    []
+    |> add_css("position", "absolute")
+    |> add_css("left", px(Map.get(child_position, "x")))
+    |> add_css("top", px(Map.get(child_position, "y")))
+    |> add_css("width", px(Map.get(child_position, "width")))
+    |> add_css("height", px(Map.get(child_position, "height")))
+    |> add_css(
+      "z-index",
+      css_value(Map.get(child_position, "z", Map.get(child_position, "z_index")))
+    )
+    |> Enum.reverse()
+    |> Enum.join("; ")
+  end
+
   defp split_orientation(props) do
     case Map.get(props, "orientation", "horizontal") do
       value when value in ["horizontal", "vertical"] -> value
@@ -258,4 +422,26 @@ defmodule LiveUi.Components.Layouts do
 
   defp blank_to_nil(""), do: nil
   defp blank_to_nil(value), do: value
+
+  defp merge_direct_style(style, class_name) do
+    case normalize_class_name(class_name) do
+      nil ->
+        style
+
+      class_name ->
+        existing = Map.get(style, "class", Map.get(style, :class))
+
+        Map.put(
+          style,
+          "class",
+          Enum.join(Enum.reject([existing, class_name], &(&1 in [nil, ""])), " ")
+        )
+    end
+  end
+
+  defp normalize_class_name(nil), do: nil
+  defp normalize_class_name(""), do: nil
+  defp normalize_class_name(class_name) when is_binary(class_name), do: class_name
+  defp normalize_class_name(class_name) when is_list(class_name), do: Enum.join(class_name, " ")
+  defp normalize_class_name(class_name), do: to_string(class_name)
 end

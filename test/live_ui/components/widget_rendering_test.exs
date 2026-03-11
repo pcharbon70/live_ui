@@ -1,8 +1,10 @@
 defmodule LiveUi.Components.WidgetRenderingTest do
   use ExUnit.Case, async: true
 
+  import Phoenix.Component, only: [sigil_H: 2]
   import Phoenix.LiveViewTest, only: [render_component: 2, rendered_to_string: 1]
 
+  alias LiveUi.Widgets
   alias LiveUi.WidgetRegistry
 
   test "renders stateless widgets with stable css tokens" do
@@ -442,5 +444,92 @@ defmodule LiveUi.Components.WidgetRenderingTest do
     assert rendered =~ "live-ui-layout--vbox"
     assert rendered =~ "Name"
     assert rendered =~ "value=&quot;Pascal&quot;"
+  end
+
+  test "renders public live_ui widgets directly without descriptor input" do
+    rendered =
+      render_component(&direct_widget_screen/1, %{})
+      |> rendered_to_string()
+
+    assert rendered =~ "live-ui-layout--vbox"
+    assert rendered =~ "live-ui-layout--hbox"
+    assert rendered =~ "Hello"
+    assert rendered =~ "Save"
+    assert rendered =~ "value=&quot;Pascal&quot;"
+    assert rendered =~ "hero"
+    assert rendered =~ "phx-click=&quot;click&quot;"
+    assert rendered =~ "phx-value-event_click_intent=&quot;save&quot;"
+  end
+
+  test "renders public layout widgets with the same hook metadata as the IUR path" do
+    rendered =
+      render_component(&direct_interactive_layout_screen/1, %{})
+      |> rendered_to_string()
+
+    assert rendered =~ "LiveUi.Viewport"
+    assert rendered =~ "data-live-ui-event=&quot;scroll&quot;"
+    assert rendered =~ "data-scroll-top=&quot;12&quot;"
+    assert rendered =~ "LiveUi.SplitPane"
+    assert rendered =~ "data-live-ui-event=&quot;resize&quot;"
+    assert rendered =~ "flex: 0 0 30%"
+  end
+
+  defp direct_widget_screen(assigns) do
+    ~H"""
+    <Widgets.vbox id="direct-root" spacing={2}>
+      <Widgets.text id="headline" content="Hello" style={%{"class" => "hero"}} />
+      <Widgets.hbox id="actions" gap={1}>
+        <Widgets.button
+          id="save-button"
+          label="Save"
+          signal_bindings={[
+            %{
+              event: "on_click",
+              payload: %{"intent" => "save"}
+            }
+          ]}
+        />
+        <Widgets.text_input id="name-input" value="Pascal" />
+      </Widgets.hbox>
+    </Widgets.vbox>
+    """
+  end
+
+  defp direct_interactive_layout_screen(assigns) do
+    ~H"""
+    <Widgets.vbox id="interactive-root">
+      <Widgets.viewport
+        id="viewport-1"
+        scroll_top={12}
+        scroll_left={4}
+        signal_bindings={[
+          %{
+            event: "on_scroll",
+            payload: %{"intent" => "sync_scroll"}
+          }
+        ]}
+      >
+        <Widgets.text id="copy" content="Scrollable" />
+      </Widgets.viewport>
+      <Widgets.split_pane
+        id="split-1"
+        sizes={[30, 70]}
+        orientation="vertical"
+        signal_bindings={[
+          %{
+            event: "on_resize_change",
+            payload: %{"intent" => "resize"}
+          }
+        ]}
+      >
+        <:pane>
+          <Widgets.label id="left-pane" text="Left" />
+        </:pane>
+        <:pane>
+          <Widgets.label id="right-pane" text="Right" />
+        </:pane>
+      </Widgets.split_pane>
+    </Widgets.vbox>
+    """
   end
 end
