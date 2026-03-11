@@ -19,16 +19,27 @@ defmodule LiveUi.Signals.EncoderTest do
     assert signal.source == "/host/live_ui"
   end
 
-  test "includes value and form context for input events" do
+  test "includes normalized field and form context for input events" do
     assert {:ok, signal} =
              Encoder.encode("change", %{
+               "_target" => ["profile", "name"],
+               "field_id" => "name-input",
+               "form_id" => "profile-form",
                "widget_id" => "name",
                "widget_kind" => "text_input",
                "value" => "Pascal",
-               "form" => %{"name" => "Pascal"}
+               "form" => %{"profile" => %{"name" => "Pascal"}}
              })
 
-    assert signal.data.payload == %{"form" => %{"name" => "Pascal"}, "value" => "Pascal"}
+    assert signal.data.payload == %{
+             "field_id" => "name-input",
+             "field_name" => "name",
+             "field_path" => ["profile", "name"],
+             "form_id" => "profile-form",
+             "value" => "Pascal",
+             "values" => %{"profile" => %{"name" => "Pascal"}}
+           }
+
     assert signal.type == "live_ui.text_input.change"
   end
 
@@ -47,6 +58,8 @@ defmodule LiveUi.Signals.EncoderTest do
     assert signal.type == "live_ui.text_input.commit_name"
 
     assert signal.data.payload == %{
+             "field_id" => "name",
+             "field_name" => "name",
              "meta" => %{"reason" => "enter"},
              "source" => "blur",
              "value" => "Pascal"
@@ -67,30 +80,48 @@ defmodule LiveUi.Signals.EncoderTest do
     assert signal.data.payload == %{"active_pane" => "left", "sizes" => [30, 70]}
   end
 
-  test "normalizes table and tree payloads without leaking browser structure" do
+  test "normalizes table and tree payloads into stable typed interaction context" do
     assert {:ok, table_signal} =
              Encoder.encode("click", %{
                "widget_id" => "users-table",
                "widget_kind" => "table",
+               "event_click_column_index" => "0",
                "event_click_intent" => "select_row",
                "event_click_row_id" => "user-1",
-               "event_click_row_index" => "0"
+               "event_click_row_index" => "0",
+               "event_click_selection_mode" => "single"
              })
 
     assert table_signal.type == "live_ui.table.select_row"
-    assert table_signal.data.payload == %{"row_id" => "user-1", "row_index" => "0"}
+
+    assert table_signal.data.payload == %{
+             "column_index" => 0,
+             "row_id" => "user-1",
+             "row_index" => 0,
+             "selection_mode" => "single"
+           }
 
     assert {:ok, tree_signal} =
              Encoder.encode("click", %{
+               "event_click_child_count" => "3",
+               "event_click_expanded" => "true",
                "widget_id" => "tree-node-1",
                "widget_kind" => "tree_node",
                "event_click_intent" => "toggle_node",
                "event_click_node_id" => "tree-node-1",
-               "event_click_expanded" => "true"
+               "event_click_next_expanded" => "false",
+               "event_click_selected" => "false"
              })
 
     assert tree_signal.type == "live_ui.tree_node.toggle_node"
-    assert tree_signal.data.payload == %{"expanded" => "true", "node_id" => "tree-node-1"}
+
+    assert tree_signal.data.payload == %{
+             "child_count" => 3,
+             "expanded" => true,
+             "next_expanded" => false,
+             "node_id" => "tree-node-1",
+             "selected" => false
+           }
   end
 
   test "decodes hook-style viewport payload json into stable signal data" do

@@ -15,10 +15,18 @@ defmodule LiveUi.Components.BasicWidgets do
     submit_binding = Helpers.binding(descriptor, "on_submit")
     button_attrs = Helpers.event_attrs("click", descriptor, click_binding)
 
+    input_name = value(props, "name", Helpers.id(descriptor))
+
+    input_payload =
+      %{}
+      |> put_if_present("field_id", Helpers.id(descriptor))
+      |> put_if_present("field_name", input_name)
+      |> put_if_present("form_id", value(props, "form_id"))
+
     input_event_attrs =
       Helpers.merge_attrs([
-        Helpers.event_attrs("change", descriptor, change_binding),
-        Helpers.event_attrs("blur", "submit", descriptor, submit_binding)
+        Helpers.event_attrs("change", nil, descriptor, change_binding, input_payload),
+        Helpers.event_attrs("blur", "submit", descriptor, submit_binding, input_payload)
       ])
 
     assigns =
@@ -29,6 +37,7 @@ defmodule LiveUi.Components.BasicWidgets do
       |> assign(:visible, Helpers.visible?(descriptor))
       |> assign(:classes, Helpers.classes(descriptor))
       |> assign(:style, Helpers.inline_style(descriptor))
+      |> assign(:input_name, input_name)
       |> assign(:button_attrs, button_attrs)
       |> assign(:input_event_attrs, input_event_attrs)
 
@@ -57,7 +66,7 @@ defmodule LiveUi.Components.BasicWidgets do
         <% "text_input" -> %>
           <input
             id={@id}
-            name={@id}
+            name={@input_name}
             type={value(@props, "input_type", value(@props, "type", "text"))}
             class={["live-ui-input" | @classes]}
             style={@style}
@@ -80,4 +89,7 @@ defmodule LiveUi.Components.BasicWidgets do
 
   defp truthy?(value) when value in [true, "true", 1, "1"], do: true
   defp truthy?(_value), do: false
+
+  defp put_if_present(map, _key, nil), do: map
+  defp put_if_present(map, key, value), do: Map.put(map, key, value)
 end

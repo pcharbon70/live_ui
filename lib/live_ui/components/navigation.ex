@@ -33,7 +33,8 @@ defmodule LiveUi.Components.Navigation do
         :command_attrs,
         Helpers.event_attrs("click", descriptor, action_binding(descriptor))
       )
-      |> assign(:tree_binding, Helpers.binding(descriptor, ["on_select", "on_toggle"]))
+      |> assign(:tree_select_binding, Helpers.binding(descriptor, "on_select"))
+      |> assign(:tree_toggle_binding, Helpers.binding(descriptor, "on_toggle"))
       |> assign(
         :palette_form_attrs,
         Helpers.merge_attrs([
@@ -104,6 +105,21 @@ defmodule LiveUi.Components.Navigation do
         <% "tree_node" -> %>
           <li id={@id} class={@classes}>
             <button
+              :if={@tree_toggle_binding}
+              type="button"
+              class="live-ui-tree__toggle"
+              aria-label={if(Helpers.truthy?(Map.get(@props, "expanded", false)), do: "Collapse node", else: "Expand node")}
+              {Helpers.event_attrs(
+                "click",
+                nil,
+                @descriptor,
+                @tree_toggle_binding,
+                tree_toggle_payload(@descriptor, @children)
+              )}
+            >
+              <%= if Helpers.truthy?(Map.get(@props, "expanded", false)), do: "-", else: "+" %>
+            </button>
+            <button
               type="button"
               class={["live-ui-tree__node", if(Helpers.truthy?(Map.get(@props, "selected", false)), do: "is-selected")]}
               aria-expanded={if(Helpers.truthy?(Map.get(@props, "expanded", false)), do: "true", else: "false")}
@@ -111,11 +127,8 @@ defmodule LiveUi.Components.Navigation do
                 "click",
                 nil,
                 @descriptor,
-                @tree_binding,
-                %{
-                  "expanded" => Helpers.truthy?(Map.get(@props, "expanded", false)),
-                  "node_id" => @id
-                }
+                tree_primary_binding(@tree_select_binding, @tree_toggle_binding),
+                tree_primary_payload(@descriptor, @children, @tree_select_binding)
               )}
             >
               <%= Map.get(@props, "label", @id) %>
@@ -172,4 +185,37 @@ defmodule LiveUi.Components.Navigation do
   end
 
   defp action_binding(descriptor), do: Helpers.binding(descriptor, ["action", "on_select"])
+
+  defp tree_primary_binding(select_binding, nil), do: select_binding
+  defp tree_primary_binding(nil, toggle_binding), do: toggle_binding
+  defp tree_primary_binding(select_binding, _toggle_binding), do: select_binding
+
+  defp tree_primary_payload(descriptor, children, select_binding) do
+    base = tree_payload(descriptor, children)
+
+    if is_nil(select_binding) do
+      Map.put(base, "next_expanded", not Map.fetch!(base, "expanded"))
+    else
+      Map.put(base, "selected", true)
+    end
+  end
+
+  defp tree_toggle_payload(descriptor, children) do
+    tree_payload(descriptor, children)
+    |> Map.put(
+      "next_expanded",
+      not Helpers.truthy?(Map.get(Helpers.props(descriptor), "expanded", false))
+    )
+    |> Map.put("selected", false)
+  end
+
+  defp tree_payload(descriptor, children) do
+    expanded = Helpers.truthy?(Map.get(Helpers.props(descriptor), "expanded", false))
+
+    %{
+      "child_count" => length(children),
+      "expanded" => expanded,
+      "node_id" => Helpers.id(descriptor)
+    }
+  end
 end

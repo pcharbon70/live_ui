@@ -46,7 +46,7 @@ defmodule LiveUi.Signals.Encoder do
     signal_attrs = %{
       data: %{
         intent: intent,
-        payload: signal_payload(payload, event_name),
+        payload: signal_payload(payload, event_name, widget_kind),
         runtime_context: runtime_context,
         widget_id: widget_id,
         widget_kind: widget_kind
@@ -118,17 +118,27 @@ defmodule LiveUi.Signals.Encoder do
     )
   end
 
-  defp signal_payload(payload, event_name) do
+  defp signal_payload(payload, event_name, widget_kind) do
     event_name = normalize_event_name(event_name)
 
-    payload
-    |> Enum.reduce(%{}, fn {key, value}, acc ->
-      put_signal_payload(acc, normalize_payload_key(key), value, event_name)
-    end)
+    normalized =
+      payload
+      |> Enum.reduce(%{}, fn {key, value}, acc ->
+        put_signal_payload(acc, normalize_payload_key(key), value, event_name)
+      end)
+
+    normalize_widget_payload(widget_kind, event_name, normalized, payload)
   end
 
   defp put_signal_payload(acc, key, value, event_name) do
-    if key in ["intent", "signal", "widget_id", "widget_kind", "event_#{event_name}_intent"] do
+    if key in [
+         "_target",
+         "intent",
+         "signal",
+         "widget_id",
+         "widget_kind",
+         "event_#{event_name}_intent"
+       ] do
       acc
     else
       do_put_signal_payload(acc, key, value, event_name)
@@ -170,6 +180,122 @@ defmodule LiveUi.Signals.Encoder do
   end
 
   defp decode_json(value), do: value
+
+  defp normalize_widget_payload(widget_kind, _event_name, payload, raw_payload)
+       when widget_kind in ["form_builder", "pick_list", "text_input"] do
+    field_path = target_path(raw_payload)
+    fallback_widget_id = Map.get(raw_payload, "widget_id", Map.get(raw_payload, :widget_id))
+    field_name = Map.get(payload, "field_name") || List.last(field_path) || fallback_widget_id
+    values = normalize_values(Map.get(payload, "form"))
+
+    payload
+    |> Map.drop(["form"])
+    |> put_if_present(
+      "field_id",
+      Map.get(payload, "field_id") || fallback_widget_id || field_name
+    )
+    |> put_if_present("field_name", field_name)
+    |> put_if_present("field_path", field_path)
+    |> put_if_present("form_id", Map.get(payload, "form_id"))
+    |> put_if_present("values", values)
+    |> put_if_present("value", Map.get(payload, "value") || value_from_values(values, field_path))
+    |> maybe_put_normalized("field_count", &normalize_integer/1)
+  end
+
+  defp normalize_widget_payload("table", _event_name, payload, _raw_payload) do
+    payload
+    |> maybe_put_normalized("row_index", &normalize_integer/1)
+    |> maybe_put_normalized("column_index", &normalize_integer/1)
+    |> maybe_put_normalized("selection_mode", &normalize_string/1)
+  end
+
+  defp normalize_widget_payload("tree_node", _event_name, payload, _raw_payload) do
+    payload
+    |> maybe_put_normalized("child_count", &normalize_integer/1)
+    |> maybe_put_normalized("expanded", &normalize_boolean/1)
+    |> maybe_put_normalized("next_expanded", &normalize_boolean/1)
+    |> maybe_put_normalized("selected", &normalize_boolean/1)
+  end
+
+  defp normalize_widget_payload(_widget_kind, _event_name, payload, _raw_payload), do: payload
+
+  defp target_path(raw_payload) do
+    case Map.get(raw_payload, "_target", Map.get(raw_payload, :_target)) do
+      nil -> []
+      path when is_list(path) -> Enum.map(path, &normalize_string/1) |> Enum.reject(&is_nil/1)
+      value when is_binary(value) -> [value]
+      value when is_atom(value) -> [Atom.to_string(value)]
+      _other -> []
+    end
+  end
+
+  defp normalize_values(%{} = values), do: values
+  defp normalize_values(_values), do: nil
+
+  defp value_from_values(nil, _field_path), do: nil
+
+  defp value_from_values(_values, []), do: nil
+
+  defp value_from_values(values, [segment]),
+    do: Map.get(values, segment, Map.get(values, safe_existing_atom(segment)))
+
+  defp value_from_values(values, [segment | rest]) do
+    next =
+      Map.get(values, segment, Map.get(values, safe_existing_atom(segment)))
+
+    if is_map(next), do: value_from_values(next, rest), else: nil
+  end
+
+  defp maybe_put_normalized(payload, key, fun) do
+    case Map.fetch(payload, key) do
+      {:ok, value} -> Map.put(payload, key, fun.(value))
+      :error -> payload
+    end
+  end
+
+  defp normalize_integer(value) when is_integer(value), do: value
+
+  defp normalize_integer(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {integer, ""} -> integer
+      _other -> value
+    end
+  end
+
+  defp normalize_integer(value), do: value
+
+  defp normalize_boolean(value) when value in [true, false], do: value
+  defp normalize_boolean("true"), do: true
+  defp normalize_boolean("false"), do: false
+  defp normalize_boolean(value), do: value
+
+  defp normalize_string(value) when is_binary(value) do
+    case String.trim(value) do
+      "" -> nil
+      normalized -> normalized
+    end
+  end
+
+  defp normalize_string(nil), do: nil
+
+  defp normalize_string(value) when is_atom(value),
+    do: value |> Atom.to_string() |> normalize_string()
+
+  defp normalize_string(value), do: to_string(value)
+
+  defp put_if_present(payload, _key, nil), do: payload
+  defp put_if_present(payload, _key, []), do: payload
+  defp put_if_present(payload, key, value), do: Map.put(payload, key, value)
+
+  defp safe_existing_atom(nil), do: nil
+
+  defp safe_existing_atom(key) when is_binary(key) do
+    String.to_existing_atom(key)
+  rescue
+    ArgumentError -> nil
+  end
+
+  defp safe_existing_atom(_key), do: nil
 
   defp signal_source(runtime_context) do
     runtime_context

@@ -127,6 +127,22 @@ defmodule LiveUi.TestSupport.RawIur do
           "on_sort" => %{"intent" => "sort_rows", "payload" => %{"direction" => "asc"}}
         },
         %{
+          "id" => "profile-form",
+          "kind" => "form_builder",
+          "submit_label" => "Save",
+          "on_change" => %{"intent" => "update_profile"},
+          "on_submit" => %{"intent" => "save_profile"},
+          "children" => [
+            %{
+              "id" => "display-name",
+              "kind" => "form_field",
+              "label" => "Name",
+              "name" => "name",
+              "default" => "Pascal"
+            }
+          ]
+        },
+        %{
           "id" => "viewport-1",
           "kind" => "viewport",
           "scroll_top" => 0,
@@ -150,6 +166,7 @@ defmodule LiveUi.TestSupport.RawIur do
           "kind" => "tree_node",
           "label" => "Node 1",
           "expanded" => true,
+          "on_select" => %{"intent" => "select_node"},
           "on_toggle" => %{"intent" => "toggle_node"},
           "children" => [%{"id" => "leaf", "kind" => "label", "text" => "Leaf"}]
         },
