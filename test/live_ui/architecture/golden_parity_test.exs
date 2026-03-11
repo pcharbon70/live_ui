@@ -7,6 +7,7 @@ defmodule LiveUi.Architecture.GoldenParityTest do
   alias LiveUi.Runtime
   alias LiveUi.TestSupport.CounterScreen
   alias LiveUi.TestSupport.RawIur
+  alias LiveUi.TestSupport.UnifiedUiCounterScreen
   alias LiveUi.WidgetRegistry
 
   @golden_dir Path.expand("../../fixtures/golden", __DIR__)
@@ -29,6 +30,32 @@ defmodule LiveUi.Architecture.GoldenParityTest do
     source_rendered = source_descriptor(4, "golden") |> render_descriptor() |> canonical_html()
     iur_rendered = iur_descriptor(4, "golden") |> render_descriptor() |> canonical_html()
     expected = File.read!(Path.join(@golden_dir, "counter_rendered.html")) |> canonical_html()
+
+    assert source_rendered == iur_rendered
+    assert source_rendered == expected
+  end
+
+  test "real unified_ui dsl screens and their emitted canonical iur share one descriptor pipeline" do
+    source_descriptor = unified_ui_source_descriptor()
+    iur_descriptor = unified_ui_iur_descriptor()
+
+    expected =
+      Path.join(@golden_dir, "unified_ui_counter_descriptor.json")
+      |> File.read!()
+      |> Jason.decode!()
+
+    assert canonical_term(source_descriptor) == canonical_term(iur_descriptor)
+    assert canonical_term(source_descriptor) == expected
+    assert canonical_term(iur_descriptor) == expected
+  end
+
+  test "real unified_ui dsl screens and their emitted canonical iur share one rendered html contract" do
+    source_rendered = unified_ui_source_descriptor() |> render_descriptor() |> canonical_html()
+    iur_rendered = unified_ui_iur_descriptor() |> render_descriptor() |> canonical_html()
+
+    expected =
+      File.read!(Path.join(@golden_dir, "unified_ui_counter_rendered.html"))
+      |> canonical_html()
 
     assert source_rendered == iur_rendered
     assert source_rendered == expected
@@ -94,4 +121,27 @@ defmodule LiveUi.Architecture.GoldenParityTest do
 
   defp canonical_term(list) when is_list(list), do: Enum.map(list, &canonical_term/1)
   defp canonical_term(other), do: other
+
+  defp unified_ui_source_descriptor do
+    assert {:ok, model} =
+             Runtime.init(
+               source: UnifiedUiCounterScreen,
+               source_opts: [],
+               runtime_context: %{}
+             )
+
+    model.descriptor_tree
+  end
+
+  defp unified_ui_iur_descriptor do
+    state = UnifiedUiCounterScreen.init([])
+
+    assert {:ok, model} =
+             Runtime.init(
+               iur: UnifiedUiCounterScreen.view(state),
+               runtime_context: %{}
+             )
+
+    model.descriptor_tree
+  end
 end

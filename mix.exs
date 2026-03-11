@@ -24,7 +24,8 @@ defmodule LiveUi.MixProject do
     [
       {:jason, "~> 1.4"},
       {:jido_signal, "~> 1.0"},
-      {:unified_iur, github: "pcharbon70/unified_iur"},
+      {:unified_iur, github: "pcharbon70/unified_iur", override: true},
+      {:unified_ui, github: "pcharbon70/unified-ui", only: :test, runtime: false},
       {:spec_led_ex,
        git: "https://github.com/specleddev/specled_ex.git", only: [:dev, :test], runtime: false},
       {:phoenix_live_view, "~> 1.0"},

@@ -37,6 +37,8 @@ defmodule LiveUi.IUR.Dependency do
   end
 
   @spec markers_present?(map()) :: boolean()
+  def markers_present?(%{__struct__: _}), do: false
+
   def markers_present?(payload) when is_map(payload) do
     payload
     |> Enum.reduce(%{}, fn {key, value}, acc -> Map.put(acc, to_string(key), value) end)

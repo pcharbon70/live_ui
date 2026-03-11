@@ -64,6 +64,9 @@ defmodule LiveUi.Source do
   @spec validate_iur!(term()) :: :ok
   def validate_iur!(iur_tree) do
     cond do
+      match?(%{__struct__: _}, iur_tree) ->
+        validate_protocol_element!(iur_tree)
+
       is_map(iur_tree) and Dependency.markers_present?(iur_tree) ->
         case Dependency.validate_markers(iur_tree) do
           :ok -> :ok
@@ -83,11 +86,11 @@ defmodule LiveUi.Source do
 
   def label(%__MODULE__{kind: :iur, iur: iur_tree}) do
     cond do
-      is_map(iur_tree) ->
-        fetch_string_value(iur_tree, ["title", "name", "kind"], "UnifiedIUR")
-
       match?(%{__struct__: _}, iur_tree) ->
         iur_tree.__struct__ |> Module.split() |> List.last() |> Kernel.||("UnifiedIUR")
+
+      is_map(iur_tree) ->
+        fetch_string_value(iur_tree, ["title", "name", "kind"], "UnifiedIUR")
 
       true ->
         "UnifiedIUR"

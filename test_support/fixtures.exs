@@ -206,6 +206,22 @@ defmodule LiveUi.TestSupport.InvalidIurScreen do
   def view(_state), do: %{kind: "totally_unknown", id: "bad-root"}
 end
 
+defmodule LiveUi.TestSupport.UnifiedUiCounterScreen do
+  @moduledoc false
+
+  @behaviour UnifiedUi.ElmArchitecture
+  use UnifiedUi.Dsl
+
+  state [counter_text: "Count: 0"], []
+
+  vbox do
+    id :dsl_counter_root
+    spacing 2
+    text {:state, :counter_text}, id: :dsl_counter_label
+    button "Increment", id: :dsl_increment_button, on_click: :increment
+  end
+end
+
 defmodule LiveUi.TestSupport.WrapperLive do
   @moduledoc false
 
