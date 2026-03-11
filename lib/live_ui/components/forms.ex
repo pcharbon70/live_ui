@@ -26,13 +26,31 @@ defmodule LiveUi.Components.Forms do
       |> assign(:style, Helpers.inline_style(descriptor))
       |> assign(
         :pick_list_attrs,
-        Helpers.event_attrs("change", descriptor, pick_list_binding(descriptor))
+        Helpers.event_attrs(
+          "change",
+          nil,
+          descriptor,
+          pick_list_binding(descriptor),
+          input_payload(descriptor, props)
+        )
       )
       |> assign(
         :form_attrs,
         Helpers.merge_attrs([
-          Helpers.event_attrs("change", descriptor, form_change_binding(descriptor)),
-          Helpers.event_attrs("submit", descriptor, form_binding(descriptor))
+          Helpers.event_attrs(
+            "change",
+            nil,
+            descriptor,
+            form_change_binding(descriptor),
+            form_payload(descriptor, children)
+          ),
+          Helpers.event_attrs(
+            "submit",
+            nil,
+            descriptor,
+            form_binding(descriptor),
+            form_payload(descriptor, children)
+          )
         ])
       )
       |> assign(:row_select_binding, Helpers.binding(descriptor, "on_row_select"))
@@ -53,7 +71,7 @@ defmodule LiveUi.Components.Forms do
         <% "form_field" -> %>
           <div id={@id} class={@classes} style={@style}>
             <label :if={Map.get(@props, "label")}><%= Map.get(@props, "label") %></label>
-            <%= field_input(@props) %>
+            <%= field_input(@id, @props) %>
           </div>
         <% "form_builder" -> %>
           <form id={@id} class={@classes} style={@style} {@form_attrs}>
@@ -73,14 +91,19 @@ defmodule LiveUi.Components.Forms do
           >
             <thead>
               <tr>
-                <%= for column <- table_columns(@props) do %>
+                <%= for {column, column_index} <- Enum.with_index(table_columns(@props)) do %>
                   <% sort_attrs =
                     Helpers.event_attrs(
                       "click",
                       nil,
                       @descriptor,
                       @sort_binding,
-                      %{"sort_column" => Map.get(column, "key")}
+                      %{
+                        "column_index" => column_index,
+                        "current_direction" => sort_direction(@props, column),
+                        "direction" => next_sort_direction(@props, column, @sort_binding),
+                        "sort_column" => Map.get(column, "key")
+                      }
                     ) %>
                   <th>
                     <button
@@ -109,7 +132,8 @@ defmodule LiveUi.Components.Forms do
                     @row_select_binding,
                     %{
                       "row_id" => table_row_id(row, index),
-                      "row_index" => index
+                      "row_index" => index,
+                      "selection_mode" => "single"
                     }
                   ) %>
                 <tr class={["live-ui-table__row", if(selected_row?(@props, row, index), do: "is-selected")]} {row_attrs}>
@@ -172,7 +196,15 @@ defmodule LiveUi.Components.Forms do
     if sorted_column?(props, column), do: Map.get(props, "sort_direction"), else: nil
   end
 
-  defp field_input(props) do
+  defp next_sort_direction(props, column, binding) do
+    case sort_direction(props, column) do
+      "asc" -> "desc"
+      "desc" -> "asc"
+      _other -> Helpers.binding_value(binding, "direction") || "asc"
+    end
+  end
+
+  defp field_input(field_id, props) do
     type = Map.get(props, "field_type", Map.get(props, "type", "text"))
     name = Map.get(props, "name", "field")
     placeholder = Map.get(props, "placeholder")
@@ -182,6 +214,7 @@ defmodule LiveUi.Components.Forms do
 
     assigns = %{
       field_type: type,
+      field_id: field_id,
       name: name,
       placeholder: placeholder,
       default: default,
@@ -192,18 +225,35 @@ defmodule LiveUi.Components.Forms do
     ~H"""
     <%= case @field_type do %>
       <% checkbox_type when checkbox_type in ["checkbox", :checkbox] -> %>
-        <input type="checkbox" name={Helpers.scalar_string(@name)} checked={Helpers.truthy?(@default)} disabled={@disabled} />
+        <input id={@field_id} type="checkbox" name={Helpers.scalar_string(@name)} checked={Helpers.truthy?(@default)} disabled={@disabled} />
       <% select_type when select_type in ["select", :select] -> %>
-        <select name={Helpers.scalar_string(@name)} disabled={@disabled}>
+        <select id={@field_id} name={Helpers.scalar_string(@name)} disabled={@disabled}>
           <%= for option <- @options do %>
             <option value={option_value(option)}><%= option_label(option) %></option>
           <% end %>
         </select>
       <% input_type -> %>
-        <input type={Helpers.scalar_string(input_type) || "text"} name={Helpers.scalar_string(@name)} value={Helpers.scalar_string(@default)} placeholder={@placeholder} disabled={@disabled} />
+        <input id={@field_id} type={Helpers.scalar_string(input_type) || "text"} name={Helpers.scalar_string(@name)} value={Helpers.scalar_string(@default)} placeholder={@placeholder} disabled={@disabled} />
     <% end %>
     """
   end
+
+  defp input_payload(descriptor, props) do
+    %{}
+    |> put_if_present("field_id", Helpers.id(descriptor))
+    |> put_if_present("field_name", Map.get(props, "name", Helpers.id(descriptor)))
+    |> put_if_present("form_id", Map.get(props, "form_id"))
+  end
+
+  defp form_payload(descriptor, children) do
+    %{
+      "field_count" => length(children),
+      "form_id" => Helpers.id(descriptor)
+    }
+  end
+
+  defp put_if_present(map, _key, nil), do: map
+  defp put_if_present(map, key, value), do: Map.put(map, key, value)
 
   defp option_value(%{"value" => value}), do: value
   defp option_value({value, _label}), do: value

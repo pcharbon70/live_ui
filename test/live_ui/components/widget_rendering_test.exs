@@ -56,7 +56,7 @@ defmodule LiveUi.Components.WidgetRenderingTest do
         descriptor: %{
           id: "name-input",
           kind: "text_input",
-          props: %{"value" => "Pascal"},
+          props: %{"form_id" => "profile-form", "name" => "name", "value" => "Pascal"},
           signal_bindings: [
             %{
               event: "on_change",
@@ -79,6 +79,9 @@ defmodule LiveUi.Components.WidgetRenderingTest do
     assert rendered =~ "phx-blur=&quot;submit&quot;"
     assert rendered =~ "phx-value-event_change_intent=&quot;update_name&quot;"
     assert rendered =~ "phx-value-event_submit_intent=&quot;commit_name&quot;"
+    assert rendered =~ "phx-value-event_change_field_id=&quot;name-input&quot;"
+    assert rendered =~ "phx-value-event_change_field_name=&quot;name&quot;"
+    assert rendered =~ "phx-value-event_change_form_id=&quot;profile-form&quot;"
     assert rendered =~ "phx-value-event_submit_source=&quot;blur&quot;"
   end
 
@@ -99,7 +102,7 @@ defmodule LiveUi.Components.WidgetRenderingTest do
     refute rendered =~ "align-items: nil"
   end
 
-  test "renders table interactions with stable scoped payload attrs" do
+  test "renders table interactions with distinct row and sort payload attrs" do
     rendered =
       render_component(&WidgetRegistry.render/1,
         descriptor: %{
@@ -107,7 +110,9 @@ defmodule LiveUi.Components.WidgetRenderingTest do
           kind: "table",
           props: %{
             "columns" => [%{"key" => "name", "header" => "Name"}],
-            "data" => [%{"name" => "Pascal"}]
+            "data" => [%{"name" => "Pascal"}],
+            "sort_column" => "name",
+            "sort_direction" => "desc"
           },
           signal_bindings: [
             %{
@@ -128,7 +133,10 @@ defmodule LiveUi.Components.WidgetRenderingTest do
       |> rendered_to_string()
 
     assert rendered =~ "phx-value-event_click_sort_column=&quot;name&quot;"
+    assert rendered =~ "phx-value-event_click_column_index=&quot;0&quot;"
+    assert rendered =~ "phx-value-event_click_current_direction=&quot;desc&quot;"
     assert rendered =~ "phx-value-event_click_direction=&quot;asc&quot;"
+    assert rendered =~ "phx-value-event_click_selection_mode=&quot;single&quot;"
     assert rendered =~ "phx-value-event_click_row_id=&quot;0&quot;"
     assert rendered =~ "phx-value-event_click_row_index=&quot;0&quot;"
   end
@@ -169,6 +177,10 @@ defmodule LiveUi.Components.WidgetRenderingTest do
     assert rendered =~ "phx-submit=&quot;submit&quot;"
     assert rendered =~ "phx-value-event_change_intent=&quot;update_profile&quot;"
     assert rendered =~ "phx-value-event_submit_intent=&quot;save_profile&quot;"
+    assert rendered =~ "phx-value-event_change_form_id=&quot;profile-form&quot;"
+    assert rendered =~ "phx-value-event_change_field_count=&quot;1&quot;"
+    assert rendered =~ "id=&quot;display-name&quot;"
+    assert rendered =~ "name=&quot;name&quot;"
   end
 
   test "renders tree, viewport, split pane, and command palette interaction metadata" do
@@ -184,6 +196,12 @@ defmodule LiveUi.Components.WidgetRenderingTest do
               kind: "tree_node",
               props: %{"label" => "Node 1", "expanded" => true},
               signal_bindings: [
+                %{
+                  event: "on_select",
+                  widget_id: "tree-node-1",
+                  widget_kind: "tree_node",
+                  payload: %{"intent" => "select_node"}
+                },
                 %{
                   event: "on_toggle",
                   widget_id: "tree-node-1",
@@ -266,8 +284,13 @@ defmodule LiveUi.Components.WidgetRenderingTest do
       )
       |> rendered_to_string()
 
+    assert rendered =~ "live-ui-tree__toggle"
     assert rendered =~ "phx-value-event_click_node_id=&quot;tree-node-1&quot;"
     assert rendered =~ "phx-value-event_click_expanded=&quot;true&quot;"
+    assert rendered =~ "phx-value-event_click_next_expanded=&quot;false&quot;"
+    assert rendered =~ "phx-value-event_click_child_count=&quot;1&quot;"
+    assert rendered =~ "phx-value-event_click_selected=&quot;true&quot;"
+    assert rendered =~ "phx-value-event_click_selected=&quot;false&quot;"
     assert rendered =~ "data-scroll-top=&quot;12&quot;"
     assert rendered =~ "data-live-ui-event=&quot;scroll&quot;"
     assert rendered =~ "LiveUi.Viewport"

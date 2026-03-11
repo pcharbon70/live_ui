@@ -159,8 +159,32 @@ defmodule LiveUi.RuntimeTest do
 
     assert find_descriptor!(tabs_model.descriptor_tree, "tabs-1").props["active_tab"] == "details"
 
+    {:ok, form_model} =
+      Runtime.handle_event(tabs_model, "change", %{
+        "_target" => ["name"],
+        "event_change_field_count" => "1",
+        "field_id" => "display-name",
+        "form" => %{"name" => "Ada"},
+        "form_id" => "profile-form",
+        "widget_id" => "profile-form",
+        "widget_kind" => "form_builder",
+        "event_change_intent" => "update_profile"
+      })
+
+    assert form_model.last_signal.type == "live_ui.form_builder.update_profile"
+
+    assert form_model.last_signal.data.payload == %{
+             "field_count" => 1,
+             "field_id" => "display-name",
+             "field_name" => "name",
+             "field_path" => ["name"],
+             "form_id" => "profile-form",
+             "value" => "Ada",
+             "values" => %{"name" => "Ada"}
+           }
+
     {:ok, viewport_model} =
-      Runtime.handle_event(tabs_model, "scroll", %{
+      Runtime.handle_event(form_model, "scroll", %{
         "widget_id" => "viewport-1",
         "widget_kind" => "viewport",
         "event_scroll_intent" => "sync_scroll",
@@ -193,15 +217,31 @@ defmodule LiveUi.RuntimeTest do
 
     assert find_descriptor!(split_model.descriptor_tree, "split-1").props["sizes"] == [40, 60]
 
-    {:ok, table_model} =
+    {:ok, sorted_table_model} =
       Runtime.handle_event(split_model, "click", %{
+        "widget_id" => "users-table",
+        "widget_kind" => "table",
+        "event_click_column_index" => "0",
+        "event_click_current_direction" => nil,
+        "event_click_direction" => "asc",
+        "event_click_intent" => "sort_rows",
+        "event_click_sort_column" => "name",
+        "event_click_selection_mode" => "single"
+      })
+
+    assert sorted_table_model.widget_state["users-table"] == %{
+             "sort_column" => "name",
+             "sort_direction" => "asc"
+           }
+
+    {:ok, table_model} =
+      Runtime.handle_event(sorted_table_model, "click", %{
         "widget_id" => "users-table",
         "widget_kind" => "table",
         "event_click_intent" => "select_row",
         "event_click_row_id" => "user-1",
         "event_click_row_index" => "0",
-        "event_click_sort_column" => "name",
-        "event_click_direction" => "asc"
+        "event_click_selection_mode" => "single"
       })
 
     assert table_model.widget_state["users-table"] == %{
@@ -214,13 +254,36 @@ defmodule LiveUi.RuntimeTest do
     assert find_descriptor!(table_model.descriptor_tree, "users-table").props["selected_row_id"] ==
              "user-1"
 
-    {:ok, tree_model} =
+    {:ok, tree_toggle_model} =
       Runtime.handle_event(table_model, "click", %{
+        "event_click_child_count" => "1",
+        "event_click_expanded" => "true",
         "widget_id" => "tree-node-1",
         "widget_kind" => "tree_node",
         "event_click_intent" => "toggle_node",
         "event_click_node_id" => "tree-node-1",
-        "event_click_expanded" => "true"
+        "event_click_next_expanded" => "false",
+        "event_click_selected" => "false"
+      })
+
+    assert tree_toggle_model.widget_state["tree-node-1"] == %{
+             "expanded" => false,
+             "node_id" => "tree-node-1",
+             "selected" => false
+           }
+
+    assert find_descriptor!(tree_toggle_model.descriptor_tree, "tree-node-1").props["expanded"] ==
+             false
+
+    {:ok, tree_model} =
+      Runtime.handle_event(tree_toggle_model, "click", %{
+        "event_click_child_count" => "1",
+        "event_click_expanded" => "false",
+        "widget_id" => "tree-node-1",
+        "widget_kind" => "tree_node",
+        "event_click_intent" => "select_node",
+        "event_click_node_id" => "tree-node-1",
+        "event_click_selected" => "true"
       })
 
     assert tree_model.widget_state["tree-node-1"] == %{
@@ -228,8 +291,6 @@ defmodule LiveUi.RuntimeTest do
              "node_id" => "tree-node-1",
              "selected" => true
            }
-
-    assert find_descriptor!(tree_model.descriptor_tree, "tree-node-1").props["expanded"] == false
 
     {:ok, palette_model} =
       Runtime.handle_event(tree_model, "change", %{

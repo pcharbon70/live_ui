@@ -99,11 +99,13 @@ defmodule LiveUi.WidgetState do
 
   defp local_state_for("tree_node", event_name, payload, widget_id) do
     expanded = scoped_value(payload, event_name, "expanded")
+    next_expanded = scoped_value(payload, event_name, "next_expanded")
+    selected = scoped_value(payload, event_name, "selected")
 
     %{}
     |> put_if_present("node_id", scoped_value(payload, event_name, "node_id", widget_id))
-    |> put_if_present("selected", true)
-    |> put_if_present("expanded", toggle_boolean(expanded))
+    |> put_if_present("selected", normalize_boolean(selected))
+    |> put_if_present("expanded", normalize_expanded(next_expanded, expanded, selected))
   end
 
   defp local_state_for("viewport", event_name, payload, _widget_id) do
@@ -153,6 +155,12 @@ defmodule LiveUi.WidgetState do
     %{}
     |> put_if_present("selected_pid", scoped_value(payload, event_name, "pid"))
     |> put_if_present("selected_process_name", scoped_value(payload, event_name, "name"))
+  end
+
+  defp local_state_for("text_input", event_name, payload, _widget_id) do
+    %{}
+    |> put_if_present("form_id", scoped_value(payload, event_name, "form_id"))
+    |> put_if_present("value", payload_value(payload, "value"))
   end
 
   defp local_state_for(_kind, _event_name, _payload, _widget_id), do: %{}
@@ -217,6 +225,17 @@ defmodule LiveUi.WidgetState do
 
   defp toggle_boolean(nil), do: nil
   defp toggle_boolean(value), do: not truthy?(value)
+
+  defp normalize_expanded(next_expanded, _expanded, _selected)
+       when next_expanded not in [nil, ""] do
+    normalize_boolean(next_expanded)
+  end
+
+  defp normalize_expanded(nil, expanded, selected) when selected not in [nil, ""] do
+    normalize_boolean(expanded)
+  end
+
+  defp normalize_expanded(nil, expanded, _selected), do: toggle_boolean(expanded)
 
   defp truthy?(value) when value in [false, nil, "false", "0", 0], do: false
   defp truthy?(_value), do: true
