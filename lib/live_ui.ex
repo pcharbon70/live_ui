@@ -2,12 +2,14 @@ defmodule LiveUi do
   @moduledoc """
   Public helpers for the `live_ui` host integration surface.
 
-  The primary host-facing API is `LiveUi.Screen`, which lets applications
-  declare tiny wrapper LiveViews around `UnifiedUi` screen modules.
+  Hosts can integrate the library in three ways:
 
-  `LiveUi.Live.DynamicLive` remains available for dynamic rendering paths and
-  expects a session envelope produced by `dynamic_session/2` or
-  `dynamic_iur_session/2`.
+  - compose screens directly from `LiveUi.Widgets`
+  - mount canonical `UnifiedIUR` through `LiveUi.Live.DynamicLive`
+  - declare thin wrapper LiveViews around source modules with `LiveUi.Screen`
+
+  `LiveUi.Live.DynamicLive` expects a session envelope produced by
+  `dynamic_session/2` or `dynamic_iur_session/2`.
   """
 
   alias LiveUi.ConfigurationError

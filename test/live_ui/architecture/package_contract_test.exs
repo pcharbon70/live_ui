@@ -7,6 +7,7 @@ defmodule LiveUi.Architecture.PackageContractTest do
   alias LiveUi.Router
   alias LiveUi.Screen
   alias LiveUi.TestSupport.RawIur
+  alias LiveUi.Widgets
   alias LiveUi.WidgetRegistry
 
   test "exposes the package entrypoints used by host apps" do
@@ -32,6 +33,9 @@ defmodule LiveUi.Architecture.PackageContractTest do
     assert Router.dynamic_live() == DynamicLive
     assert Router.screen(LiveUi.TestSupport.WrapperLive) == LiveUi.TestSupport.WrapperLive
     assert macro_exported?(Screen, :__using__, 1)
+    assert Code.ensure_loaded?(Widgets)
+    assert function_exported?(Widgets, :vbox, 1)
+    assert function_exported?(Widgets, :button, 1)
     assert WidgetRegistry.supported_kind?("canvas")
     assert Assets.hook_name("viewport") == "LiveUi.Viewport"
     assert Assets.javascript_import_path() == "../../deps/live_ui/assets/js/live_ui"
