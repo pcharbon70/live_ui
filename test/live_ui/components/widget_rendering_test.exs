@@ -474,6 +474,42 @@ defmodule LiveUi.Components.WidgetRenderingTest do
     assert rendered =~ "flex: 0 0 30%"
   end
 
+  test "renders public composite widgets directly with shared interaction contracts" do
+    rendered =
+      render_component(&direct_composite_widget_screen/1, %{})
+      |> rendered_to_string()
+
+    assert rendered =~ "live-ui-tabs__tab is-active"
+    assert rendered =~ "Name"
+    assert rendered =~ "Pascal"
+    assert rendered =~ "phx-value-event_click_tab_id=&quot;details&quot;"
+    assert rendered =~ "phx-change=&quot;change&quot;"
+    assert rendered =~ "phx-submit=&quot;submit&quot;"
+    assert rendered =~ "role=&quot;dialog&quot;"
+    assert rendered =~ "Archive"
+    assert rendered =~ "phx-value-event_click_intent=&quot;archive_dialog&quot;"
+    assert rendered =~ "data-active-command-id=&quot;deploy&quot;"
+    assert rendered =~ "phx-value-event_click_command_id=&quot;deploy&quot;"
+    assert rendered =~ "phx-value-event_change_intent=&quot;pick_region&quot;"
+  end
+
+  test "renders public data and extension widgets directly" do
+    rendered =
+      render_component(&direct_data_widget_screen/1, %{})
+      |> rendered_to_string()
+
+    assert rendered =~ "System Load"
+    assert rendered =~ "value=&quot;62&quot;"
+    assert rendered =~ "Deploys"
+    assert rendered =~ "meter"
+    assert rendered =~ "data-live-ui-hook=&quot;LiveUi.Canvas&quot;"
+    assert rendered =~ "Filter logs"
+    assert rendered =~ "phx-value-event_change_intent=&quot;filter_logs&quot;"
+    assert rendered =~ "phx-value-event_click_intent=&quot;refresh_logs&quot;"
+    assert rendered =~ "phx-value-event_click_pid=&quot;#PID&amp;lt;0.10.0&amp;gt;&quot;"
+    assert rendered =~ "Saved"
+  end
+
   defp direct_widget_screen(assigns) do
     ~H"""
     <Widgets.vbox id="direct-root" spacing={2}>
@@ -529,6 +565,129 @@ defmodule LiveUi.Components.WidgetRenderingTest do
           <Widgets.label id="right-pane" text="Right" />
         </:pane>
       </Widgets.split_pane>
+    </Widgets.vbox>
+    """
+  end
+
+  defp direct_composite_widget_screen(assigns) do
+    ~H"""
+    <Widgets.vbox id="composite-root" gap={2}>
+      <Widgets.tabs
+        id="tabs-1"
+        active_tab="details"
+        signal_bindings={[
+          %{event: "on_change", payload: %{"intent" => "switch_tab"}}
+        ]}
+      >
+        <:tab id="summary" label="Summary">
+          <Widgets.text id="summary-copy" content="Summary" />
+        </:tab>
+        <:tab id="details" label="Details">
+          <Widgets.table
+            id="users-table"
+            columns={[%{"key" => "name", "header" => "Name"}]}
+            data={[%{"id" => "user-1", "name" => "Pascal"}]}
+            selected_row_id="user-1"
+            signal_bindings={[
+              %{event: "on_row_select", payload: %{"intent" => "select_user"}}
+            ]}
+          />
+        </:tab>
+      </Widgets.tabs>
+
+      <Widgets.command_palette
+        id="palette-1"
+        query="dep"
+        active_command_id="deploy"
+        signal_bindings={[
+          %{event: "on_change", payload: %{"intent" => "update_query"}},
+          %{event: "on_submit", payload: %{"intent" => "submit_query"}}
+        ]}
+      >
+        <Widgets.command
+          id="deploy"
+          label="Deploy"
+          signal_bindings={[
+            %{event: "action", payload: %{"intent" => "run_command", "payload" => %{"command_id" => "deploy"}}}
+          ]}
+        />
+      </Widgets.command_palette>
+
+      <Widgets.form_builder
+        id="profile-form"
+        submit_label="Save"
+        signal_bindings={[
+          %{event: "on_change", payload: %{"intent" => "update_profile"}},
+          %{event: "on_submit", payload: %{"intent" => "save_profile"}}
+        ]}
+      >
+        <Widgets.form_field id="display-name" label="Name" name="name" default="Pascal" />
+        <Widgets.pick_list
+          id="region"
+          placeholder="Select region"
+          signal_bindings={[
+            %{event: "on_select", payload: %{"intent" => "pick_region"}}
+          ]}
+        >
+          <Widgets.pick_list_option value="us-west" label="US West" />
+        </Widgets.pick_list>
+      </Widgets.form_builder>
+
+      <Widgets.dialog id="archive-dialog" title="Archive item">
+        <Widgets.text id="dialog-copy" content="Archive now?" />
+        <:action>
+          <Widgets.dialog_button
+            id="archive-action"
+            label="Archive"
+            signal_bindings={[
+              %{event: "action", payload: %{"intent" => "archive_dialog"}}
+            ]}
+          />
+        </:action>
+      </Widgets.dialog>
+    </Widgets.vbox>
+    """
+  end
+
+  defp direct_data_widget_screen(assigns) do
+    ~H"""
+    <Widgets.vbox id="data-root" gap={2}>
+      <Widgets.gauge id="system-load" label="System Load" value={62} />
+      <Widgets.bar_chart
+        id="deploy-chart"
+        title="Deploys"
+        data={[
+          %{"label" => "Mon", "value" => 3},
+          %{"label" => "Tue", "value" => 5}
+        ]}
+      />
+      <Widgets.canvas
+        id="job-canvas"
+        title="Topology"
+        operations={[
+          %{"op" => "rect", "x" => 10, "y" => 12, "width" => 40, "height" => 20}
+        ]}
+      />
+      <Widgets.log_viewer
+        id="logs"
+        filter="error"
+        lines={["error one"]}
+        source="app.log"
+        signal_bindings={[
+          %{event: "on_change", payload: %{"intent" => "filter_logs"}},
+          %{event: "action", payload: %{"intent" => "refresh_logs"}}
+        ]}
+      />
+      <Widgets.process_monitor
+        id="processes"
+        node="demo@127.0.0.1"
+        processes={[%{"pid" => "#PID<0.10.0>", "name" => "worker"}]}
+        selected_pid="#PID<0.10.0>"
+        signal_bindings={[
+          %{event: "on_process_select", payload: %{"intent" => "select_process"}}
+        ]}
+      />
+      <Widgets.toast id="saved-toast" message="Saved" />
     </Widgets.vbox>
     """
   end

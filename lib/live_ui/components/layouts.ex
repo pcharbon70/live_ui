@@ -209,10 +209,7 @@ defmodule LiveUi.Components.Layouts do
   end
 
   defp direct_layout_props(assigns) do
-    style = Map.get(assigns, :style, Map.get(assigns, "style", %{}))
-    class_name = Map.get(assigns, :class, Map.get(assigns, "class"))
-
-    %{
+    Helpers.direct_props(assigns, %{
       "active_index" => Map.get(assigns, :active_index, Map.get(assigns, "active_index")),
       "align_items" => Map.get(assigns, :align_items, Map.get(assigns, "align_items")),
       "axis" => Map.get(assigns, :axis, Map.get(assigns, "axis")),
@@ -228,12 +225,8 @@ defmodule LiveUi.Components.Layouts do
       "scroll_left" => Map.get(assigns, :scroll_left, Map.get(assigns, "scroll_left")),
       "scroll_top" => Map.get(assigns, :scroll_top, Map.get(assigns, "scroll_top")),
       "sizes" => Map.get(assigns, :sizes, Map.get(assigns, "sizes")),
-      "spacing" => Map.get(assigns, :spacing, Map.get(assigns, "spacing")),
-      "style" => merge_direct_style(style, class_name),
-      "visible" => Map.get(assigns, :visible, Map.get(assigns, "visible", true))
-    }
-    |> Enum.reject(fn {_key, value} -> is_nil(value) end)
-    |> Map.new()
+      "spacing" => Map.get(assigns, :spacing, Map.get(assigns, "spacing"))
+    })
   end
 
   defp layout_style(kind, props, base_style) do
@@ -422,26 +415,4 @@ defmodule LiveUi.Components.Layouts do
 
   defp blank_to_nil(""), do: nil
   defp blank_to_nil(value), do: value
-
-  defp merge_direct_style(style, class_name) do
-    case normalize_class_name(class_name) do
-      nil ->
-        style
-
-      class_name ->
-        existing = Map.get(style, "class", Map.get(style, :class))
-
-        Map.put(
-          style,
-          "class",
-          Enum.join(Enum.reject([existing, class_name], &(&1 in [nil, ""])), " ")
-        )
-    end
-  end
-
-  defp normalize_class_name(nil), do: nil
-  defp normalize_class_name(""), do: nil
-  defp normalize_class_name(class_name) when is_binary(class_name), do: class_name
-  defp normalize_class_name(class_name) when is_list(class_name), do: Enum.join(class_name, " ")
-  defp normalize_class_name(class_name), do: to_string(class_name)
 end

@@ -125,6 +125,119 @@ defmodule LiveUi.Components.Forms do
     """
   end
 
+  def pick_list(assigns) do
+    descriptor =
+      Helpers.direct_descriptor(assigns, "pick_list", %{
+        "placeholder" => Map.get(assigns, :placeholder, Map.get(assigns, "placeholder"))
+      })
+
+    assigns =
+      assigns
+      |> assign(:descriptor, descriptor)
+      |> assign(:id, Helpers.id(descriptor))
+      |> assign(
+        :classes,
+        Helpers.classes(descriptor, ["live-ui-forms", "live-ui-forms--pick_list"])
+      )
+      |> assign(:style, Helpers.inline_style(descriptor))
+      |> assign(
+        :pick_list_attrs,
+        Helpers.event_attrs("change", descriptor, pick_list_binding(descriptor))
+      )
+      |> assign_new(:inner_block, fn -> [] end)
+
+    ~H"""
+    <%= if Helpers.visible?(@descriptor) do %>
+      <div id={@id} class={@classes} style={@style}>
+        <select id={@id <> "-select"} name={@id} {@pick_list_attrs}>
+          <option :if={Map.get(Helpers.props(@descriptor), "placeholder")} value=""><%= Map.get(Helpers.props(@descriptor), "placeholder") %></option>
+          <%= render_slot(@inner_block) %>
+        </select>
+      </div>
+    <% end %>
+    """
+  end
+
+  def pick_list_option(assigns),
+    do: direct_leaf(assigns, "pick_list_option", ["label", "selected", "value"])
+
+  def form_field(assigns) do
+    direct_leaf(assigns, "form_field", [
+      "default",
+      "disabled",
+      "field_type",
+      "label",
+      "name",
+      "options",
+      "placeholder",
+      "type"
+    ])
+  end
+
+  def form_builder(assigns) do
+    descriptor =
+      Helpers.direct_descriptor(assigns, "form_builder", %{
+        "submit_label" => Map.get(assigns, :submit_label, Map.get(assigns, "submit_label"))
+      })
+
+    assigns =
+      assigns
+      |> assign(:descriptor, descriptor)
+      |> assign(:id, Helpers.id(descriptor))
+      |> assign(
+        :classes,
+        Helpers.classes(descriptor, ["live-ui-forms", "live-ui-forms--form_builder"])
+      )
+      |> assign(:style, Helpers.inline_style(descriptor))
+      |> assign(
+        :form_attrs,
+        Helpers.merge_attrs([
+          Helpers.event_attrs("change", descriptor, form_change_binding(descriptor)),
+          Helpers.event_attrs("submit", descriptor, form_binding(descriptor))
+        ])
+      )
+      |> assign_new(:inner_block, fn -> [] end)
+
+    ~H"""
+    <%= if Helpers.visible?(@descriptor) do %>
+      <form id={@id} class={@classes} style={@style} {@form_attrs}>
+        <%= render_slot(@inner_block) %>
+        <button type="submit"><%= Map.get(Helpers.props(@descriptor), "submit_label", "Submit") %></button>
+      </form>
+    <% end %>
+    """
+  end
+
+  def column(assigns), do: direct_leaf(assigns, "column", ["header", "key"])
+
+  def table(assigns) do
+    direct_leaf(assigns, "table", [
+      "columns",
+      "data",
+      "selected_row_id",
+      "selected_row_index",
+      "sort_column",
+      "sort_direction"
+    ])
+  end
+
+  defp direct_leaf(assigns, kind, prop_keys) do
+    extra_props =
+      prop_keys
+      |> Enum.map(fn key ->
+        {key, Map.get(assigns, String.to_atom(key), Map.get(assigns, key))}
+      end)
+      |> Enum.reject(fn {_key, value} -> is_nil(value) end)
+      |> Map.new()
+
+    descriptor = Helpers.direct_descriptor(assigns, kind, extra_props)
+    assigns = assign(assigns, :descriptor, descriptor)
+
+    ~H"""
+    <.render descriptor={@descriptor} />
+    """
+  end
+
   defp selected?(props), do: Helpers.truthy?(Map.get(props, "selected", false))
 
   defp pick_list_binding(descriptor), do: Helpers.binding(descriptor, "on_select")

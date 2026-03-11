@@ -125,6 +125,33 @@ defmodule LiveUi.Components.Extensions do
     """
   end
 
+  def log_viewer(assigns), do: direct_leaf(assigns, "log_viewer", ["filter", "lines", "source"])
+
+  def stream_widget(assigns) do
+    direct_leaf(assigns, "stream_widget", ["buffer_size", "items", "lines", "title"])
+  end
+
+  def process_monitor(assigns) do
+    direct_leaf(assigns, "process_monitor", ["node", "processes", "selected_pid"])
+  end
+
+  defp direct_leaf(assigns, kind, prop_keys) do
+    extra_props =
+      prop_keys
+      |> Enum.map(fn key ->
+        {key, Map.get(assigns, String.to_atom(key), Map.get(assigns, key))}
+      end)
+      |> Enum.reject(fn {_key, value} -> is_nil(value) end)
+      |> Map.new()
+
+    descriptor = Helpers.direct_descriptor(assigns, kind, extra_props)
+    assigns = assign(assigns, :descriptor, descriptor)
+
+    ~H"""
+    <.render descriptor={@descriptor} />
+    """
+  end
+
   defp process_label(%{} = process) do
     [process_value(process, "name"), process_value(process, "pid")]
     |> Enum.reject(&(&1 in [nil, ""]))

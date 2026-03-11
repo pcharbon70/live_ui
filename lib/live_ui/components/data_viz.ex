@@ -71,6 +71,30 @@ defmodule LiveUi.Components.DataViz do
     """
   end
 
+  def gauge(assigns), do: direct_leaf(assigns, "gauge", ["label", "max", "min", "value"])
+  def sparkline(assigns), do: direct_leaf(assigns, "sparkline", ["data"])
+  def bar_chart(assigns), do: direct_leaf(assigns, "bar_chart", ["data", "title"])
+  def line_chart(assigns), do: direct_leaf(assigns, "line_chart", ["data", "title"])
+  def chart(assigns), do: direct_leaf(assigns, "chart", ["series", "title"])
+  def canvas(assigns), do: direct_leaf(assigns, "canvas", ["draw", "operations", "title"])
+
+  defp direct_leaf(assigns, kind, prop_keys) do
+    extra_props =
+      prop_keys
+      |> Enum.map(fn key ->
+        {key, Map.get(assigns, String.to_atom(key), Map.get(assigns, key))}
+      end)
+      |> Enum.reject(fn {_key, value} -> is_nil(value) end)
+      |> Map.new()
+
+    descriptor = Helpers.direct_descriptor(assigns, kind, extra_props)
+    assigns = assign(assigns, :descriptor, descriptor)
+
+    ~H"""
+    <.render descriptor={@descriptor} />
+    """
+  end
+
   defp data_points(data) when is_list(data) do
     Enum.map(data, fn
       {label, amount} ->
