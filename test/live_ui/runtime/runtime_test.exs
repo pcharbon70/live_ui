@@ -282,13 +282,13 @@ defmodule LiveUi.RuntimeTest do
     {:ok, model} =
       Runtime.init(source: CounterScreen, source_opts: [count: 5], runtime_context: %{})
 
-    signal =
-      Signal.new!(
-        "live_ui.button.increment",
-        %{payload: %{"delta" => 2}, widget_id: "increment-button", widget_kind: "button"},
+    {:ok, signal} =
+      Signal.new(%{
+        type: "live_ui.button.increment",
+        data: %{payload: %{"delta" => 2}, widget_id: "increment-button", widget_kind: "button"},
         source: "/host/live_ui",
         subject: "increment-button"
-      )
+      })
 
     assert {:ok, %Model{} = updated_model} =
              Runtime.handle_event(model, "ignored", %{"signal" => signal})
