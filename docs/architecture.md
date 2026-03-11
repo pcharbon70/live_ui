@@ -48,6 +48,7 @@ Example host asset registration:
 
 ```javascript
 import LiveUiHooks from "../../deps/live_ui/assets/js/live_ui"
+import "../../deps/live_ui/assets/css/live_ui.css"
 
 const liveSocket = new LiveSocket("/live", Socket, {
   hooks: {
@@ -131,6 +132,7 @@ const liveSocket = new LiveSocket("/live", Socket, {
   - Maps `UnifiedIUR` style values into semantic classes, CSS variables, and inline geometry where needed.
 - `LiveUi.Style.Theme`
   - Owns the library theme contract, default design tokens, variants, and host-overridable theme surfaces.
+  - Exposes `scope/1`, `container_attrs/2`, and CSS-variable helpers for host branding without changing IUR payloads.
 
 ### Layer system
 
@@ -218,6 +220,37 @@ The theme system should own:
 - consistent theme behavior across both direct widget use and IUR-driven rendering
 
 `UnifiedIUR` may carry style intent, but `live_ui` should decide how that intent maps onto the concrete rendered theme contract.
+
+Host override surfaces should stay library-owned and stable. The recommended surfaces are:
+
+- import the library stylesheet from `../../deps/live_ui/assets/css/live_ui.css`
+- wrap a subtree with `LiveUi.Widgets.theme`
+- provide runtime theme overrides through `runtime_context.theme` for the shared engine path
+
+Example direct-widget override:
+
+```elixir
+<LiveUi.Widgets.theme
+  tokens=%{
+    color: %{accent: "#224488"},
+    typography: %{heading_family: "Fraunces, serif"}
+  }
+>
+  <LiveUi.Widgets.button id="save" label="Save" />
+</LiveUi.Widgets.theme>
+```
+
+Example runtime override for `LiveUi.Live.DynamicLive`:
+
+```elixir
+LiveUi.dynamic_iur_session(iur_tree,
+  context: %{
+    theme: %{
+      color: %{accent: "#224488"}
+    }
+  }
+)
+```
 
 ## Layer System Responsibilities
 

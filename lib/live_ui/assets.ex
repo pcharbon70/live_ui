@@ -1,11 +1,14 @@
 defmodule LiveUi.Assets do
   @moduledoc """
-  Host-facing asset manifest for JavaScript hooks used by advanced widgets.
+  Host-facing asset manifest for JavaScript hooks and theme assets used by advanced widgets.
   """
 
-  @asset_root Path.expand("../../assets/js", __DIR__)
-  @entrypoint "live_ui"
-  @import_path "../../deps/live_ui/assets/js/live_ui"
+  @javascript_asset_root Path.expand("../../assets/js", __DIR__)
+  @javascript_entrypoint "live_ui"
+  @javascript_import_path "../../deps/live_ui/assets/js/live_ui"
+  @stylesheet_asset_root Path.expand("../../assets/css", __DIR__)
+  @stylesheet_entrypoint "live_ui.css"
+  @stylesheet_import_path "../../deps/live_ui/assets/css/live_ui.css"
 
   @hooks %{
     "canvas" => "LiveUi.Canvas",
@@ -23,13 +26,23 @@ defmodule LiveUi.Assets do
   end
 
   @spec javascript_entrypoint() :: String.t()
-  def javascript_entrypoint, do: @entrypoint
+  def javascript_entrypoint, do: @javascript_entrypoint
 
   @spec javascript_entrypoint_path() :: String.t()
-  def javascript_entrypoint_path, do: Path.join(@asset_root, "#{@entrypoint}.js")
+  def javascript_entrypoint_path,
+    do: Path.join(@javascript_asset_root, "#{@javascript_entrypoint}.js")
 
   @spec javascript_import_path() :: String.t()
-  def javascript_import_path, do: @import_path
+  def javascript_import_path, do: @javascript_import_path
+
+  @spec stylesheet_entrypoint() :: String.t()
+  def stylesheet_entrypoint, do: @stylesheet_entrypoint
+
+  @spec stylesheet_entrypoint_path() :: String.t()
+  def stylesheet_entrypoint_path, do: Path.join(@stylesheet_asset_root, @stylesheet_entrypoint)
+
+  @spec stylesheet_import_path() :: String.t()
+  def stylesheet_import_path, do: @stylesheet_import_path
 
   defp normalize_kind(kind) when is_atom(kind), do: kind |> Atom.to_string() |> normalize_kind()
   defp normalize_kind(kind) when is_binary(kind), do: kind |> String.trim() |> String.downcase()

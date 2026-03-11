@@ -10,11 +10,20 @@ defmodule LiveUi.Style.Compiler do
       {key, value} when key in [:class, "class"] and is_binary(value) ->
         value |> String.split(~r/\s+/, trim: true)
 
-      {key, value} when key in [:variant, "variant"] and is_binary(value) ->
-        ["variant-#{value}"]
+      {key, value} when key in [:variant, "variant"] ->
+        ["variant-#{normalize_token(value)}"]
 
-      {key, value} when key in [:tone, "tone"] and is_binary(value) ->
-        ["tone-#{value}"]
+      {key, value} when key in [:tone, "tone"] ->
+        ["tone-#{normalize_token(value)}"]
+
+      {key, value} when key in [:elevation, "elevation"] ->
+        ["elevation-#{normalize_token(value)}"]
+
+      {key, value} when key in [:motion, "motion"] ->
+        ["motion-#{normalize_token(value)}"]
+
+      {key, value} when key in [:text_style, "text_style"] ->
+        ["text-style-#{normalize_token(value)}"]
 
       {key, value} when key in [:gap, "gap"] ->
         ["gap-#{value}"]

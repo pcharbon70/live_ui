@@ -10,6 +10,7 @@ defmodule LiveUi.Live.Engine do
   alias LiveUi.Runtime
   alias LiveUi.Runtime.Model
   alias LiveUi.Source
+  alias LiveUi.Style.Theme
   alias LiveUi.Session
   alias Phoenix.LiveView.Socket
 
@@ -98,7 +99,9 @@ defmodule LiveUi.Live.Engine do
           </header>
 
           <div class="live-ui-shell__body">
-            <LiveUi.WidgetRegistry.render descriptor={@live_ui_model.descriptor_tree} />
+            <Theme.scope id="live-ui-theme-root" tokens={theme_tokens(@live_ui_model)}>
+              <LiveUi.WidgetRegistry.render descriptor={@live_ui_model.descriptor_tree} />
+            </Theme.scope>
           </div>
         </div>
       <% end %>
@@ -122,6 +125,12 @@ defmodule LiveUi.Live.Engine do
 
   defp shell_status(%Model{} = model, nil), do: Atom.to_string(model.status)
   defp shell_status(_model, _error), do: "error"
+
+  defp theme_tokens(%Model{runtime_context: runtime_context}) when is_map(runtime_context) do
+    Map.get(runtime_context, "theme", Map.get(runtime_context, :theme, %{}))
+  end
+
+  defp theme_tokens(_model), do: %{}
 
   defp source_name(nil), do: "LiveUi"
   defp source_name(%Source{} = source), do: Source.label(source)

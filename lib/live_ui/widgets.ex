@@ -15,6 +15,7 @@ defmodule LiveUi.Widgets do
   alias LiveUi.Components.Forms
   alias LiveUi.Components.Layouts
   alias LiveUi.Components.Navigation
+  alias LiveUi.Style.Theme
   alias LiveUi.WidgetRegistry
 
   attr(:descriptor, :map, required: true)
@@ -24,6 +25,13 @@ defmodule LiveUi.Widgets do
     <WidgetRegistry.render descriptor={@descriptor} />
     """
   end
+
+  attr(:id, :string, default: nil)
+  attr(:tokens, :map, default: %{})
+  attr(:class, :any, default: nil)
+  attr(:style, :string, default: nil)
+  slot(:inner_block, required: true)
+  def theme(assigns), do: Theme.scope(assigns)
 
   attr(:id, :string, default: nil)
   attr(:style, :map, default: %{})

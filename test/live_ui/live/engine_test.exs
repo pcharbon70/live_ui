@@ -141,6 +141,36 @@ defmodule LiveUi.Live.EngineTest do
     assert rendered =~ "missing required metadata"
   end
 
+  test "render scopes runtime output through the shared theme container" do
+    socket = socket_for(DynamicLive, "dynamic-theme-1", nil)
+
+    {:ok, mounted_socket} =
+      Engine.mount_dynamic(
+        %{"request_id" => "req-theme-100"},
+        LiveUi.dynamic_iur_session(RawIur.counter_tree(7),
+          context: %{
+            theme: %{
+              color: %{accent: "#224488"},
+              motion: %{fast: "90ms"}
+            }
+          }
+        ),
+        socket
+      )
+
+    rendered =
+      render_component(&Engine.render/1,
+        live_ui_error: nil,
+        live_ui_model: mounted_socket.assigns.live_ui_model
+      )
+      |> rendered_to_string()
+
+    assert rendered =~ "live-ui-theme"
+    assert rendered =~ "data-live-ui-theme=&quot;default&quot;"
+    assert rendered =~ "--live-ui-color-accent: #224488"
+    assert rendered =~ "--live-ui-motion-fast: 90ms"
+  end
+
   defp socket_for(view, id, live_action) do
     %Socket{
       id: id,

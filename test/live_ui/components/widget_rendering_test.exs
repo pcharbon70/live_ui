@@ -510,6 +510,19 @@ defmodule LiveUi.Components.WidgetRenderingTest do
     assert rendered =~ "Saved"
   end
 
+  test "renders direct widgets inside the shared theme scope with override variables" do
+    rendered =
+      render_component(&direct_themed_widget_screen/1, %{})
+      |> rendered_to_string()
+
+    assert rendered =~ "live-ui-theme"
+    assert rendered =~ "data-live-ui-theme=&quot;default&quot;"
+    assert rendered =~ "--live-ui-color-accent: #224488"
+    assert rendered =~ "--live-ui-typography-heading-family: Fraunces, serif"
+    assert rendered =~ "tone-accent"
+    assert rendered =~ "variant-primary"
+  end
+
   defp direct_widget_screen(assigns) do
     ~H"""
     <Widgets.vbox id="direct-root" spacing={2}>
@@ -689,6 +702,26 @@ defmodule LiveUi.Components.WidgetRenderingTest do
       />
       <Widgets.toast id="saved-toast" message="Saved" />
     </Widgets.vbox>
+    """
+  end
+
+  defp direct_themed_widget_screen(assigns) do
+    ~H"""
+    <Widgets.theme
+      id="theme-root"
+      tokens={%{
+        color: %{accent: "#224488"},
+        typography: %{heading_family: "Fraunces, serif"}
+      }}
+    >
+      <Widgets.vbox id="theme-screen">
+        <Widgets.text
+          id="theme-title"
+          content="Themed"
+          style={%{"tone" => "accent", "variant" => "primary", "text_style" => "heading"}}
+        />
+      </Widgets.vbox>
+    </Widgets.theme>
     """
   end
 end
